@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/cubed-core-benchmark-v0-teacher.schema.json",
+  "title": "Cubed Core Benchmark v0 separately held teacher truth",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "capture_id",
+    "scramble_sha256",
+    "teacher_source",
+    "teacher_moves",
+    "trajectory",
+    "phase_boundaries",
+    "ll_boundary"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/benchmark-v0-teacher"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "scramble_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "teacher_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "review_status",
+        "timing_status",
+        "cube_relation",
+        "cross_device_alignment"
+      ],
+      "properties": {
+        "kind": {
+          "const": "ble-smart-cube"
+        },
+        "review_status": {
+          "const": "reviewed"
+        },
+        "timing_status": {
+          "const": "content-aligned"
+        },
+        "cube_relation": {
+          "const": "same-physical-cube"
+        },
+        "cross_device_alignment": {
+          "const": "content-affine-reviewed"
+        }
+      }
+    },
+    "teacher_moves": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "move",
+          "timestamp_ms"
+        ],
+        "properties": {
+          "move": {
+            "$ref": "#/$defs/move"
+          },
+          "timestamp_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "trajectory": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 1001,
+      "items": {
+        "$ref": "#/$defs/trajectory_state"
+      }
+    },
+    "phase_boundaries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "teacher_move_index",
+          "canonical_state_sha256"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$"
+          },
+          "teacher_move_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "canonical_state_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "ll_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "teacher_move_index",
+        "phase_name",
+        "equivalence_basis",
+        "state_hash_algorithm",
+        "accepted_target_states"
+      ],
+      "properties": {
+        "metric": {
+          "const": "reach-ll-onset-with-correct-pre-ll-state"
+        },
+        "teacher_move_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "phase_name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$"
+        },
+        "equivalence_basis": {
+          "const": "cubed-core-exact-whole-cube-rotation-v1"
+        },
+        "state_hash_algorithm": {
+          "const": "sha256-cubed-core-state-v1"
+        },
+        "accepted_target_states": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/oriented_state"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "move": {
+      "type": "string",
+      "pattern": "^[UDLRFB](?:'|2)?$"
+    },
+    "state": {
+      "type": "array",
+      "minItems": 54,
+      "maxItems": 54,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 5
+      }
+    },
+    "trajectory_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step",
+        "state",
+        "sha256"
+      ],
+      "properties": {
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "state": {
+          "$ref": "#/$defs/state"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "oriented_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "orientation_key",
+        "state",
+        "sha256"
+      ],
+      "properties": {
+        "orientation_key": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "up",
+              "right",
+              "front",
+              "down",
+              "left",
+              "back"
+            ]
+          }
+        },
+        "state": {
+          "$ref": "#/$defs/state"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}

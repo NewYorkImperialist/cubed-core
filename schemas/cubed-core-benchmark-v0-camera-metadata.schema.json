@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/cubed-core-benchmark-v0-camera-metadata.schema.json",
+  "title": "Cubed Core Benchmark v0 camera metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "capture_id",
+    "session_group_id",
+    "camera_group_id",
+    "setup_group_id",
+    "capture_device",
+    "cube",
+    "calibration_binding",
+    "measured_fps",
+    "source_measured_fps",
+    "frame_count",
+    "width",
+    "height",
+    "rotation_degrees",
+    "timing_source",
+    "video_probe_receipt"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/benchmark-v0-camera-metadata"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "session_group_id": {
+      "$ref": "#/$defs/group_id"
+    },
+    "camera_group_id": {
+      "$ref": "#/$defs/group_id"
+    },
+    "setup_group_id": {
+      "$ref": "#/$defs/group_id"
+    },
+    "capture_device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manufacturer",
+        "model",
+        "camera_position",
+        "lens_camera_class",
+        "recording_mode",
+        "configured_fps",
+        "metadata_sanitized"
+      ],
+      "properties": {
+        "manufacturer": {
+          "$ref": "#/$defs/public_text"
+        },
+        "model": {
+          "$ref": "#/$defs/public_text"
+        },
+        "camera_position": {
+          "enum": [
+            "front",
+            "back",
+            "external"
+          ]
+        },
+        "lens_camera_class": {
+          "enum": [
+            "wide",
+            "ultrawide",
+            "telephoto",
+            "front",
+            "external",
+            "other-reviewed"
+          ]
+        },
+        "recording_mode": {
+          "enum": [
+            "standard-120",
+            "research-240",
+            "external-high-speed"
+          ]
+        },
+        "configured_fps": {
+          "enum": [
+            120,
+            240
+          ]
+        },
+        "metadata_sanitized": {
+          "const": true
+        }
+      }
+    },
+    "cube": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "puzzle_type",
+        "manufacturer",
+        "model",
+        "edge_length_mm",
+        "smart_cube",
+        "teacher_relationship"
+      ],
+      "properties": {
+        "puzzle_type": {
+          "const": "3x3x3"
+        },
+        "manufacturer": {
+          "$ref": "#/$defs/public_text"
+        },
+        "model": {
+          "$ref": "#/$defs/public_text"
+        },
+        "edge_length_mm": {
+          "type": "number",
+          "minimum": 30,
+          "maximum": 100
+        },
+        "smart_cube": {
+          "const": true
+        },
+        "teacher_relationship": {
+          "const": "same-cube-ble-teacher"
+        }
+      }
+    },
+    "calibration_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibration_sha256",
+        "setup_group_id",
+        "relationship",
+        "review_status",
+        "reviewer_id",
+        "reviewed_at"
+      ],
+      "properties": {
+        "calibration_sha256": {
+          "$ref": "#/$defs/nonzero_sha256"
+        },
+        "setup_group_id": {
+          "$ref": "#/$defs/group_id"
+        },
+        "relationship": {
+          "enum": [
+            "captured-on-this-setup",
+            "reviewed-compatible-with-this-setup"
+          ]
+        },
+        "review_status": {
+          "const": "reviewed"
+        },
+        "reviewer_id": {
+          "$ref": "#/$defs/group_id"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 64
+        }
+      }
+    },
+    "measured_fps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      }
+    },
+    "source_measured_fps": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/fps"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "frame_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000000
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32768
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32768
+    },
+    "rotation_degrees": {
+      "enum": [
+        0,
+        90,
+        180,
+        270
+      ]
+    },
+    "timing_source": {
+      "enum": [
+        "container-metadata",
+        "frame-timestamps",
+        "reviewed-external-receipt"
+      ]
+    },
+    "video_probe_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "schema_version",
+        "producer",
+        "review_status",
+        "reviewer_id",
+        "reviewed_at",
+        "tool",
+        "canonical_video",
+        "source_video"
+      ],
+      "properties": {
+        "schema": {
+          "const": "cubed-core/benchmark-v0-video-probe-receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "producer": {
+          "const": "cubed-core-server-probe"
+        },
+        "review_status": {
+          "const": "reviewed"
+        },
+        "reviewer_id": {
+          "$ref": "#/$defs/group_id"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time",
+          "maxLength": 64
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version",
+            "implementation_sha256"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/public_text"
+            },
+            "version": {
+              "$ref": "#/$defs/public_text"
+            },
+            "implementation_sha256": {
+              "$ref": "#/$defs/nonzero_sha256"
+            }
+          }
+        },
+        "canonical_video": {
+          "$ref": "#/$defs/probed_video"
+        },
+        "source_video": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/probed_video"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonzero_sha256": {
+      "type": "string",
+      "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+    },
+    "probed_video": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "bytes",
+        "sha256",
+        "measured_fps",
+        "frame_count",
+        "width",
+        "height",
+        "rotation_degrees"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "measured_fps": {
+          "$ref": "#/$defs/fps"
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32768
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32768
+        },
+        "rotation_degrees": {
+          "enum": [
+            0,
+            90,
+            180,
+            270
+          ]
+        }
+      }
+    },
+    "fps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      }
+    },
+    "public_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "^(?![Uu][Nn][Kk][Nn][Oo][Ww][Nn]$).+$"
+    },
+    "group_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    }
+  }
+}

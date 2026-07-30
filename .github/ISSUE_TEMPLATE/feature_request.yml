@@ -1,0 +1,42 @@
+name: Feature or research proposal
+description: Suggest a focused improvement to Cubed Core.
+title: "[Proposal]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the smallest useful change. Do not attach private videos, labels, BLE logs, model binaries, credentials, or private links.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Public-content check
+      options:
+        - label: I have not included private or sensitive artifacts or links.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What concrete user or research problem should be solved?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Smallest useful change
+      description: Describe the change and its expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification
+      description: How could this be tested with synthetic, public, or expressly cleared inputs?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and limitations
+      description: What simpler options were considered, and what would remain unsupported?

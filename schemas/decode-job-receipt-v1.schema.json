@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/decode-job-receipt-v1.schema.json",
+  "title": "Cubed Core decode job receipt",
+  "description": "Write-once record binding one succeeded decode job to the exact bytes it produced, the runner identity that produced them, and the server's own replay of the emitted moves. The replay is a consistency check on the emitted move sequence. It is not an accuracy measurement and it makes no reach-LL claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "job_id",
+    "capture_id",
+    "finished_at",
+    "profile",
+    "request_sha256",
+    "result_sha256",
+    "result_bytes",
+    "result_status",
+    "replay_check",
+    "evidence_scope",
+    "runner_provenance",
+    "runtime_assets"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/decode-job-receipt-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "profile": {
+      "const": "local_camera_v1"
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "result_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "result_bytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "result_status": {
+      "enum": [
+        "completed",
+        "abstained",
+        "failed"
+      ]
+    },
+    "replay_check": {
+      "description": "The server's independent replay of the emitted moves from the sealed scramble, using its own cube model rather than any value the runner reported.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "performed",
+        "solved_reached",
+        "move_count",
+        "detail"
+      ],
+      "properties": {
+        "performed": {
+          "type": "boolean"
+        },
+        "solved_reached": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "move_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "evidence_scope": {
+      "const": "reconstruction-evidence-with-replay-check"
+    },
+    "runner_provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "runner_kind",
+        "identity_status",
+        "command_sha256"
+      ],
+      "properties": {
+        "runner_kind": {
+          "enum": [
+            "native",
+            "external"
+          ]
+        },
+        "identity_status": {
+          "enum": [
+            "verified-native-identity",
+            "unverified-external-identity"
+          ]
+        },
+        "command_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "runtime_assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

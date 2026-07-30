@@ -1,0 +1,410 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/ble-session-v1.schema.json",
+  "title": "Cubed Core BLE teacher session",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "ble_session_id",
+    "capture_session_id",
+    "video_recording_id",
+    "started_at",
+    "ended_at",
+    "device",
+    "clock",
+    "scramble",
+    "moves",
+    "orientations",
+    "states"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/ble-session"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "ble_session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capture_session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "video_recording_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "phone_recording": {
+      "$ref": "#/$defs/phoneRecording"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "device": {
+      "type": "object",
+      "required": [
+        "name",
+        "hardware_name",
+        "hardware_version",
+        "software_version",
+        "product_date",
+        "gyro_supported",
+        "battery_start_percent",
+        "battery_end_percent"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "hardware_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hardware_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "software_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "product_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gyro_supported": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "battery_start_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "battery_end_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "clock": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "monotonic_start_ms",
+        "unix_start_ms",
+        "relative_timebase",
+        "move_event_time",
+        "orientation_event_time",
+        "cross_device_alignment"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "monotonic_start_ms": {
+          "type": "number"
+        },
+        "unix_start_ms": {
+          "type": "number"
+        },
+        "relative_timebase": {
+          "const": "host_performance_now"
+        },
+        "move_event_time": {
+          "const": "event_local_timestamp_or_host_monotonic_fallback"
+        },
+        "orientation_event_time": {
+          "const": "host_monotonic_receive"
+        },
+        "cross_device_alignment": {
+          "const": "content_affine_required"
+        }
+      },
+      "additionalProperties": false
+    },
+    "zero_quat": {
+      "$ref": "#/$defs/quaternion"
+    },
+    "scramble": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "moves": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/move"
+      }
+    },
+    "orientations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/orientation"
+      }
+    },
+    "states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/state"
+      }
+    }
+  },
+  "$defs": {
+    "phoneRecording": {
+      "type": "object",
+      "required": [
+        "pair_code",
+        "request_id",
+        "recording_id",
+        "start_status",
+        "upload_state",
+        "capture_id",
+        "error"
+      ],
+      "properties": {
+        "pair_code": {
+          "type": "string",
+          "pattern": "^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recording_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_status": {
+          "const": "confirmed"
+        },
+        "upload_state": {
+          "enum": [
+            "pending",
+            "finalizing",
+            "uploading",
+            "uploaded",
+            "failed"
+          ]
+        },
+        "capture_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "quaternion": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false
+    },
+    "velocity": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false
+    },
+    "move": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "t_ms",
+        "move",
+        "facelets",
+        "quaternion",
+        "event_local_timestamp_ms",
+        "event_host_timestamp_ms",
+        "cube_timestamp_ms",
+        "serial",
+        "clock_source"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "move": {
+          "type": "string",
+          "minLength": 1
+        },
+        "facelets": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "quaternion": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/quaternion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_local_timestamp_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "event_host_timestamp_ms": {
+          "type": "number"
+        },
+        "cube_timestamp_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "serial": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "clock_source": {
+          "enum": [
+            "event_local_timestamp",
+            "host_monotonic_fallback"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "orientation": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "t_ms",
+        "quaternion",
+        "event_host_timestamp_ms",
+        "clock_source"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "quaternion": {
+          "$ref": "#/$defs/quaternion"
+        },
+        "velocity": {
+          "$ref": "#/$defs/velocity"
+        },
+        "event_host_timestamp_ms": {
+          "type": "number"
+        },
+        "clock_source": {
+          "const": "host_monotonic_receive"
+        }
+      },
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "t_ms",
+        "facelets",
+        "serial",
+        "event_host_timestamp_ms"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "t_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "facelets": {
+          "type": "string",
+          "minLength": 54,
+          "maxLength": 54
+        },
+        "serial": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "event_host_timestamp_ms": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

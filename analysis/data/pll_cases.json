@@ -1,0 +1,233 @@
+{
+ "schema": 1,
+ "cases": [
+  {
+   "id": "PLL-Aa",
+   "name": "Aa Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "002201101100",
+   "algs": [
+    "x L2 D2 L' U' L D2 L' U L'",
+    "y' x' L' U L' D2 L U' L' D2 L2"
+   ],
+   "htm": 9
+  },
+  {
+   "id": "PLL-Ab",
+   "name": "Ab Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "003303302200",
+   "algs": [
+    "x' L2 D2 L U L' D2 L U' L",
+    "y x L U' L D2 L' U L D2 L2"
+   ],
+   "htm": 9
+  },
+  {
+   "id": "PLL-E",
+   "name": "E Perm",
+   "group": "Diagonal corner swap",
+   "fingerprint": "012210012210",
+   "algs": [
+    "x' L' U L D' L' U' L D L' U' L D' L' U L D",
+    "x' R U' R' D R U R' D' R U R' D R U' R' D'"
+   ],
+   "htm": 16
+  },
+  {
+   "id": "PLL-F",
+   "name": "F Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "000023301120",
+   "algs": [
+    "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R"
+   ],
+   "htm": 18
+  },
+  {
+   "id": "PLL-Ga",
+   "name": "Ga Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "010033321120",
+   "algs": [
+    "R2 U R' U R' U' R U' R2 U' D R' U R D'",
+    "R2 u R' U R' U' R u' R2 y' R' U R"
+   ],
+   "htm": 15
+  },
+  {
+   "id": "PLL-Gb",
+   "name": "Gb Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "020023311130",
+   "algs": [
+    "R' U' R U D' R2 U R' U R U' R U' R2 D",
+    "y F' U' F R2 u R' U R U' R u' R2"
+   ],
+   "htm": 15
+  },
+  {
+   "id": "PLL-Gc",
+   "name": "Gc Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "003323312210",
+   "algs": [
+    "R2 U' R U' R U R' U R2 U D' R U' R' D",
+    "y2 R2 F2 R U2 R U2 R' F R U R' U' R' F R2"
+   ],
+   "htm": 15
+  },
+  {
+   "id": "PLL-Gd",
+   "name": "Gd Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "002231131120",
+   "algs": [
+    "R U R' U' D R2 U' R U' R' U R' U R2 D'",
+    "R U R' y' R2 u' R U' R' U R' u R2"
+   ],
+   "htm": 15
+  },
+  {
+   "id": "PLL-H",
+   "name": "H Perm",
+   "group": "Edges only",
+   "fingerprint": "020020020020",
+   "algs": [
+    "M2 U M2 U2 M2 U M2",
+    "M2 U' M2 U2 M2 U' M2"
+   ],
+   "htm": 11
+  },
+  {
+   "id": "PLL-Ja",
+   "name": "Ja Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "000003331110",
+   "algs": [
+    "x R2 F R F' R U2 r' U r U2",
+    "y2 L' U' L F L' U' L U L F' L2 U L"
+   ],
+   "htm": 10
+  },
+  {
+   "id": "PLL-Jb",
+   "name": "Jb Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "000033311100",
+   "algs": [
+    "R U R' F' R U R' U' R' F R2 U' R'"
+   ],
+   "htm": 13
+  },
+  {
+   "id": "PLL-Na",
+   "name": "Na Perm",
+   "group": "Diagonal corner swap",
+   "fingerprint": "022200022200",
+   "algs": [
+    "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'",
+    "z U R' D R2 U' R D' U R' D R2 U' R D'"
+   ],
+   "htm": 21
+  },
+  {
+   "id": "PLL-Nb",
+   "name": "Nb Perm",
+   "group": "Diagonal corner swap",
+   "fingerprint": "002220002220",
+   "algs": [
+    "R' U R U' R' F' U' F R U R' F R' F' R U' R",
+    "z D' R U' R2 D R' U D' R U' R2 D R' U"
+   ],
+   "htm": 17
+  },
+  {
+   "id": "PLL-Ra",
+   "name": "Ra Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "003301130010",
+   "algs": [
+    "R U' R' U' R U R D R' U' R D' R' U2 R'",
+    "R U R' F' R U2 R' U2 R' F R U R U2 R'"
+   ],
+   "htm": 15
+  },
+  {
+   "id": "PLL-Rb",
+   "name": "Rb Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "012211101120",
+   "algs": [
+    "R2 F R U R U' R' F' R U2 R' U2 R",
+    "y' R' U2 R U2 R' F R U R' U' R' F' R2"
+   ],
+   "htm": 13
+  },
+  {
+   "id": "PLL-T",
+   "name": "T Perm",
+   "group": "Adjacent corner swap",
+   "fingerprint": "003321100020",
+   "algs": [
+    "R U R' U' R' F R2 U' R' U' R U R' F'"
+   ],
+   "htm": 14
+  },
+  {
+   "id": "PLL-Ua",
+   "name": "Ua Perm",
+   "group": "Edges only",
+   "fingerprint": "000030030020",
+   "algs": [
+    "M2 U M U2 M' U M2",
+    "R U' R U R U R U' R' U' R2"
+   ],
+   "htm": 11
+  },
+  {
+   "id": "PLL-Ub",
+   "name": "Ub Perm",
+   "group": "Edges only",
+   "fingerprint": "000020010010",
+   "algs": [
+    "M2 U' M U2 M' U' M2",
+    "R2 U R U R' U' R' U' R' U R'"
+   ],
+   "htm": 11
+  },
+  {
+   "id": "PLL-V",
+   "name": "V Perm",
+   "group": "Diagonal corner swap",
+   "fingerprint": "002230012200",
+   "algs": [
+    "R' U R' U' y R' F' R2 U' R' U R' F R F",
+    "R' U R' U' R D' R' D R' U D' R2 U' R2 D R2"
+   ],
+   "htm": 14
+  },
+  {
+   "id": "PLL-Y",
+   "name": "Y Perm",
+   "group": "Diagonal corner swap",
+   "fingerprint": "002200032210",
+   "algs": [
+    "F R U' R' U' R U R' F' R U R' U' R' F R F'",
+    "F R' F R2 U' R' U' R U R' F' R U R' U' F'"
+   ],
+   "htm": 17
+  },
+  {
+   "id": "PLL-Z",
+   "name": "Z Perm",
+   "group": "Edges only",
+   "fingerprint": "010030010030",
+   "algs": [
+    "M' U M2 U M2 U M' U2 M2",
+    "y M' U' M2 U' M2 U' M' U2 M2"
+   ],
+   "htm": 14
+  }
+ ]
+}

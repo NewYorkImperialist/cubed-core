@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/decode-run-terminal-v1.schema.json",
+  "title": "Cubed Core terminal decode-run record",
+  "description": "Bounded server-authored restart index for one terminal Decode attempt. It deliberately excludes runner logs, commands, local paths, and capture bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "job_id",
+    "capture_id",
+    "status",
+    "outcome",
+    "created_at",
+    "started_at",
+    "finished_at",
+    "return_code",
+    "failure",
+    "video_sha256",
+    "result"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/decode-run-terminal-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "status": {
+      "enum": [
+        "succeeded",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ]
+    },
+    "outcome": {
+      "enum": [
+        "completed",
+        "abstained",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "return_code": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message",
+            "retryable"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "video_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "result": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes",
+            "status",
+            "replay_check"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "status": {
+              "enum": [
+                "completed",
+                "abstained",
+                "failed"
+              ]
+            },
+            "replay_check": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "performed",
+                "solved_reached",
+                "move_count",
+                "detail"
+              ],
+              "properties": {
+                "performed": {
+                  "type": "boolean"
+                },
+                "solved_reached": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "move_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1000
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

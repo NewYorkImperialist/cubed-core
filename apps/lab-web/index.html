@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <meta
+      name="description"
+      content="Cubed Core local video decode and run inspection workbench"
+    />
+    <meta id="theme-color" name="theme-color" content="#0d1418" />
+    <script>
+      (() => {
+        const adminTokenKey = "cubed-core-admin-token";
+        const fragment = new URLSearchParams(location.hash.slice(1));
+        const suppliedAdminToken = fragment.get("admin") ?? "";
+        if (suppliedAdminToken) {
+          window.__CUBED_CORE_ADMIN_TOKEN__ = suppliedAdminToken;
+          try {
+            sessionStorage.setItem(adminTokenKey, suppliedAdminToken);
+          } catch {
+            // The in-memory value still protects this page when storage is blocked.
+          }
+          fragment.delete("admin");
+          const remainingFragment = fragment.toString();
+          history.replaceState(
+            null,
+            "",
+            `${location.pathname}${location.search}${
+              remainingFragment ? `#${remainingFragment}` : ""
+            }`,
+          );
+        }
+
+        document.documentElement.dataset.theme = "dark";
+        document.documentElement.style.colorScheme = "dark";
+      })();
+    </script>
+    <title>Cubed Core</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

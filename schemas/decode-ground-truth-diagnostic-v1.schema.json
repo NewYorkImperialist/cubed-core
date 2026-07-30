@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/decode-ground-truth-diagnostic-v1.schema.json",
+  "title": "Cubed Core post-hoc published BLE diagnostic",
+  "description": "A diagnostic-only sequence comparison built after a camera decode result is frozen. It is not a decode input, evaluation metric, benchmark result, or evidence of generalization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "diagnostic_only",
+    "capture_id",
+    "reference",
+    "normalization",
+    "counts",
+    "comparison"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/decode-ground-truth-diagnostic-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "diagnostic_only": {
+      "const": true
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "scope",
+        "dataset_id",
+        "revision",
+        "bootstrap_manifest_sha256",
+        "download_receipt_sha256",
+        "corpus_manifest_sha256",
+        "video_sha256",
+        "scramble_sha256",
+        "ble_sha256",
+        "video_link_status",
+        "video_recording_id_verified"
+      ],
+      "properties": {
+        "kind": {
+          "const": "published-smart-cube-ble"
+        },
+        "scope": {
+          "enum": [
+            "sequence-only",
+            "sequence-and-clip-frame-indexed"
+          ]
+        },
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "bootstrap_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "download_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "corpus_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "video_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scramble_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "ble_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "frame_ground_truth_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "video_link_status": {
+          "enum": [
+            "linked",
+            "failed_timeout"
+          ]
+        },
+        "video_recording_id_verified": {
+          "const": true
+        }
+      }
+    },
+    "normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_metric",
+        "comparison_metric",
+        "method"
+      ],
+      "properties": {
+        "raw_metric": {
+          "const": "quarter-turn"
+        },
+        "comparison_metric": {
+          "const": "half-turn"
+        },
+        "method": {
+          "const": "adjacent-same-face-mod-4"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decoded_htm",
+        "ble_raw_qtm",
+        "ble_canonical_htm"
+      ],
+      "properties": {
+        "decoded_htm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "ble_raw_qtm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 400
+        },
+        "ble_canonical_htm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 400
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distance",
+        "ops"
+      ],
+      "properties": {
+        "distance": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 800
+        },
+        "ops": {
+          "type": "array",
+          "maxItems": 800,
+          "items": {
+            "$ref": "#/$defs/op"
+          }
+        }
+      }
+    },
+    "frame_timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "basis",
+        "source_schema",
+        "source_sha256"
+      ],
+      "properties": {
+        "available": {
+          "const": true
+        },
+        "basis": {
+          "const": "clip-local"
+        },
+        "source_schema": {
+          "const": "cubed-core/clip-ble-ground-truth-v1"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "reference": {
+            "properties": {
+              "scope": {
+                "const": "sequence-and-clip-frame-indexed"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "frame_timing"
+        ],
+        "properties": {
+          "reference": {
+            "required": [
+              "frame_ground_truth_sha256"
+            ]
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "frame_timing"
+          ]
+        },
+        "properties": {
+          "reference": {
+            "not": {
+              "required": [
+                "frame_ground_truth_sha256"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "move": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[UDLRFB](?:'|2)?$"
+    },
+    "index": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 399
+    },
+    "op": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "decoded",
+        "reference",
+        "index_decoded",
+        "index_reference"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "equal",
+            "substitute",
+            "insert",
+            "delete"
+          ]
+        },
+        "decoded": {
+          "$ref": "#/$defs/move"
+        },
+        "reference": {
+          "$ref": "#/$defs/move"
+        },
+        "index_decoded": {
+          "$ref": "#/$defs/index"
+        },
+        "index_reference": {
+          "$ref": "#/$defs/index"
+        }
+      }
+    }
+  }
+}

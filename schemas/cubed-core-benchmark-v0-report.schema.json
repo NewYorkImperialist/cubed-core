@@ -1,0 +1,606 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/cubed-core-benchmark-v0-report.schema.json",
+  "title": "Cubed Core Benchmark v0 evaluation report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "benchmark_id",
+    "benchmark_version",
+    "manifest_sha256",
+    "split",
+    "capture_count",
+    "contract_valid",
+    "claim_tier",
+    "system",
+    "teacher_isolation",
+    "split_integrity",
+    "aggregate",
+    "component_diagnostics",
+    "captures",
+    "limitations"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/benchmark-v0-report"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    },
+    "benchmark_version": {
+      "const": "0"
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "validation",
+        "test"
+      ]
+    },
+    "capture_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 30
+    },
+    "contract_valid": {
+      "const": true
+    },
+    "claim_tier": {
+      "description": "The report verifies declared input and evaluator boundaries, not isolation of the prediction process or host.",
+      "const": "interface-boundary-only"
+    },
+    "system": {
+      "$ref": "#/$defs/system"
+    },
+    "teacher_isolation": {
+      "$ref": "#/$defs/teacher_isolation"
+    },
+    "split_integrity": {
+      "$ref": "#/$defs/split_integrity"
+    },
+    "aggregate": {
+      "$ref": "#/$defs/aggregate"
+    },
+    "component_diagnostics": {
+      "$ref": "#/$defs/component_diagnostics"
+    },
+    "captures": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "items": {
+        "$ref": "#/$defs/capture_result"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    }
+  },
+  "$defs": {
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "implementation_sha256",
+        "config_sha256",
+        "model_artifacts",
+        "run_receipt_sha256"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "implementation_sha256": {
+          "type": "string",
+          "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+        },
+        "model_artifacts": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "sha256"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "run_receipt_sha256": {
+          "type": "string",
+          "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+        }
+      }
+    },
+    "teacher_isolation": {
+      "description": "Declared and evaluator-verified teacher-data boundaries. The scope field states the limit of this evidence.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prediction_lane",
+        "prediction_input_binding_verified",
+        "teacher_access_declaration",
+        "teacher_root_separate_from_public_bundle",
+        "process_environment_audited",
+        "scope"
+      ],
+      "properties": {
+        "prediction_lane": {
+          "const": "camera-only"
+        },
+        "prediction_input_binding_verified": {
+          "const": true
+        },
+        "teacher_access_declaration": {
+          "const": "none-declared"
+        },
+        "teacher_root_separate_from_public_bundle": {
+          "const": true
+        },
+        "process_environment_audited": {
+          "const": false
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "group_policy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "disjoint"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "reason"
+          ],
+          "properties": {
+            "mode": {
+              "const": "disclosed-overlap"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 10
+            }
+          }
+        }
+      ]
+    },
+    "overlap_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "splits",
+        "capture_count"
+      ],
+      "properties": {
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "splits": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "train",
+              "validation",
+              "test"
+            ]
+          }
+        },
+        "capture_count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 30
+        }
+      }
+    },
+    "overlap_map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "solver_id",
+        "cube_id",
+        "camera_id",
+        "setup_id"
+      ],
+      "properties": {
+        "session_id": {
+          "$ref": "#/$defs/overlap_list"
+        },
+        "solver_id": {
+          "$ref": "#/$defs/overlap_list"
+        },
+        "cube_id": {
+          "$ref": "#/$defs/overlap_list"
+        },
+        "camera_id": {
+          "$ref": "#/$defs/overlap_list"
+        },
+        "setup_id": {
+          "$ref": "#/$defs/overlap_list"
+        }
+      }
+    },
+    "overlap_list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/overlap_item"
+      }
+    },
+    "split_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "fixed",
+        "group_policy",
+        "observed_cross_split_groups"
+      ],
+      "properties": {
+        "unit": {
+          "const": "capture"
+        },
+        "fixed": {
+          "const": true
+        },
+        "group_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "session_id",
+            "solver_id",
+            "cube_id",
+            "camera_id",
+            "setup_id"
+          ],
+          "properties": {
+            "session_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "solver_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "cube_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "camera_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "setup_id": {
+              "$ref": "#/$defs/group_policy"
+            }
+          }
+        },
+        "observed_cross_split_groups": {
+          "$ref": "#/$defs/overlap_map"
+        }
+      }
+    },
+    "rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "metric_count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "successes",
+        "total",
+        "rate"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "successes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "rate": {
+          "$ref": "#/$defs/rate"
+        }
+      }
+    },
+    "primary_metric": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/metric_count"
+        },
+        {
+          "required": [
+            "definition"
+          ],
+          "properties": {
+            "metric": {
+              "const": "reach_ll_rate"
+            },
+            "definition": {
+              "const": "reach-ll-onset-with-correct-pre-ll-state"
+            }
+          }
+        }
+      ]
+    },
+    "secondary_metric": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/metric_count"
+        },
+        {
+          "properties": {
+            "metric": {
+              "const": "solved_endpoint_completion_rate"
+            }
+          }
+        }
+      ]
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "abstention_count",
+        "abstention_rate",
+        "edit_distance_mean",
+        "predicted_length_mean",
+        "teacher_length_mean",
+        "runtime_ms_mean",
+        "runtime_ms_total"
+      ],
+      "properties": {
+        "abstention_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "abstention_rate": {
+          "$ref": "#/$defs/rate"
+        },
+        "edit_distance_mean": {
+          "type": "number",
+          "minimum": 0
+        },
+        "predicted_length_mean": {
+          "type": "number",
+          "minimum": 0
+        },
+        "teacher_length_mean": {
+          "type": "number",
+          "minimum": 0
+        },
+        "runtime_ms_mean": {
+          "type": "number",
+          "minimum": 0
+        },
+        "runtime_ms_total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary",
+        "secondary",
+        "diagnostics"
+      ],
+      "properties": {
+        "primary": {
+          "$ref": "#/$defs/primary_metric"
+        },
+        "secondary": {
+          "$ref": "#/$defs/secondary_metric"
+        },
+        "diagnostics": {
+          "$ref": "#/$defs/diagnostics"
+        }
+      }
+    },
+    "component_diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "metrics"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "unit",
+              "capture_count",
+              "sample_count",
+              "weighted_mean",
+              "scope"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "capture_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "weighted_mean": {
+                "type": "number"
+              },
+              "scope": {
+                "const": "component-only-not-end-to-end"
+              }
+            }
+          }
+        }
+      }
+    },
+    "capture_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capture_id",
+        "status",
+        "reach_ll",
+        "reach_ll_hit_step",
+        "solved_endpoint_completed",
+        "edit_distance",
+        "predicted_length",
+        "teacher_length",
+        "deepest_phase_reached",
+        "first_unreached_phase",
+        "runtime_ms",
+        "abstention_reason"
+      ],
+      "properties": {
+        "capture_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "abstained"
+          ]
+        },
+        "reach_ll": {
+          "type": "boolean"
+        },
+        "reach_ll_hit_step": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "solved_endpoint_completed": {
+          "type": "boolean"
+        },
+        "edit_distance": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "predicted_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "teacher_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deepest_phase_reached": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "first_unreached_phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstention_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

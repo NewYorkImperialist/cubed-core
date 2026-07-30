@@ -1,0 +1,510 @@
+.label-tool-page {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.label-tool-page .label-page-header {
+  position: relative;
+  z-index: 4;
+  grid-template-columns: minmax(0, 680px) auto;
+  align-items: start;
+  gap: 32px;
+  margin-bottom: 0;
+  padding-bottom: 16px;
+}
+
+.label-tool-page .label-page-header h1 {
+  font-size: clamp(38px, 4.2vw, 54px);
+  font-weight: 740;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-transform: none;
+}
+
+.label-page-header .page-description {
+  max-width: 610px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.label-help {
+  position: relative;
+  justify-self: end;
+  min-width: 188px;
+}
+
+.label-help summary,
+.label-secondary-source summary,
+.label-filter-menu summary,
+.label-inspector-disclosure summary {
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  list-style: none;
+}
+
+.label-help summary::-webkit-details-marker,
+.label-secondary-source summary::-webkit-details-marker,
+.label-filter-menu summary::-webkit-details-marker,
+.label-inspector-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.label-help summary::after,
+.label-secondary-source summary::after,
+.label-filter-menu summary::after,
+.label-inspector-disclosure summary::after {
+  margin-left: auto;
+  color: var(--text-faint);
+  content: "+";
+  font-family: var(--tool-mono);
+}
+
+.label-help[open] summary::after,
+.label-secondary-source[open] summary::after,
+.label-filter-menu[open] summary::after,
+.label-inspector-disclosure[open] summary::after {
+  content: "−";
+}
+
+.label-help summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-card);
+}
+
+.label-help-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 310px;
+  border: 1px solid var(--line-dark);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+}
+
+.label-help dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 13px 14px 12px;
+}
+
+.label-help dl > div {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.label-help dt,
+.label-help dd {
+  margin: 0;
+  font-size: 11px;
+}
+
+.label-help dt {
+  color: var(--ink);
+  font-family: var(--tool-mono);
+}
+
+.label-help dd {
+  color: var(--text-tertiary);
+}
+
+.label-help kbd {
+  color: inherit;
+  font: inherit;
+}
+
+.label-help p {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.label-help code {
+  color: var(--text-secondary);
+  font-family: var(--tool-mono);
+  font-size: inherit;
+}
+
+.label-source-panel {
+  display: grid;
+  grid-template-areas:
+    "heading main"
+    ". secondary";
+  grid-template-columns: 164px minmax(0, 1fr);
+  gap: 5px 18px;
+  align-items: start;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-card);
+}
+
+.label-source-heading {
+  grid-area: heading;
+  align-self: center;
+}
+
+.label-source-heading .station-code {
+  margin-bottom: 4px;
+}
+
+.label-source-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 690;
+  letter-spacing: -0.012em;
+}
+
+.label-source-main {
+  grid-area: main;
+  min-width: 0;
+}
+
+.label-source-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.label-source-control select {
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-dark);
+  border-radius: 6px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font-family: var(--tool-mono);
+  font-size: 12px;
+}
+
+.label-source-control .button {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.label-source-main .source-workspace-error {
+  margin-top: 9px;
+}
+
+.label-source-main .tool-message {
+  margin-bottom: 7px;
+}
+
+.label-secondary-source {
+  grid-area: secondary;
+  min-width: 0;
+}
+
+.label-secondary-source summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: fit-content;
+  min-height: 30px;
+  padding: 5px 0;
+}
+
+.label-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 1px;
+  margin-top: 5px;
+  padding: 1px;
+  background: var(--line);
+}
+
+.label-secondary-source .file-action {
+  min-height: 60px;
+  background: var(--surface-subtle);
+}
+
+.label-tool-page > .tool-empty-state {
+  min-height: 170px;
+  padding: 30px 24px;
+  border-color: var(--line);
+  background: transparent;
+}
+
+.label-empty-state {
+  display: flex;
+  align-items: center;
+}
+
+.label-empty-state .station-code {
+  margin: 0 0 7px;
+}
+
+.label-empty-state strong {
+  font-size: 17px;
+  font-weight: 680;
+}
+
+.label-empty-state .text-button {
+  display: inline-block;
+  margin-top: 15px;
+}
+
+.label-tool-page .label-toolbar {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto auto auto minmax(118px, 1fr);
+  gap: 0;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border-color: var(--line);
+  background: var(--surface-card);
+  box-shadow: none;
+}
+
+.label-tool-cluster {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  padding: 7px 10px 8px;
+  border-right: 1px solid var(--line);
+}
+
+.label-toolset-name {
+  color: var(--text-faint);
+  font-family: var(--tool-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.label-tool-page .label-tool-group {
+  gap: 3px;
+  background: transparent;
+}
+
+.label-tool-page .label-tool-group button,
+.label-tool-page .export-actions button {
+  min-height: 31px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.label-tool-page .label-tool-group button:hover:not(:disabled),
+.label-tool-page .export-actions button:hover:not(:disabled) {
+  border-color: var(--line);
+}
+
+.label-tool-page .label-tool-group .tool-active {
+  border-color: var(--line);
+  background: var(--surface-solid);
+  box-shadow: inset 0 -2px var(--blue);
+}
+
+.label-filter-menu {
+  position: relative;
+  justify-self: end;
+  min-width: 126px;
+}
+
+.label-filter-menu summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: flex-end;
+  min-height: 100%;
+  padding: 9px 11px;
+}
+
+.label-filter-menu .label-filter-group {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 25;
+  display: grid;
+  gap: 10px;
+  width: 270px;
+  margin: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--line-dark);
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+}
+
+.label-tool-page .label-filter-group label {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.label-tool-page .label-workspace {
+  grid-template-columns: minmax(0, 1fr) minmax(292px, 318px);
+  border-color: var(--line);
+  background: var(--surface-card);
+  box-shadow: none;
+}
+
+.label-tool-page .label-stage-column {
+  padding: 12px;
+  border-right-color: var(--line);
+  background: var(--surface-subtle);
+}
+
+.label-tool-page .label-stage {
+  min-height: 360px;
+  border-color: var(--line);
+}
+
+.label-tool-page .label-stage video,
+.label-tool-page .label-stage > img {
+  max-height: 76vh;
+}
+
+.label-tool-page .frame-transport {
+  margin-top: 9px;
+}
+
+.label-tool-page .frame-scrubber {
+  margin-top: 8px;
+}
+
+.label-tool-page .label-inspector {
+  background: var(--surface-card);
+}
+
+.label-tool-page .inspector-section {
+  padding: 14px 15px;
+  border-bottom-color: var(--line);
+}
+
+.label-tool-page .inspector-section > .station-code {
+  margin-bottom: 7px;
+}
+
+.label-tool-page .tool-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 8px;
+  padding: 1px;
+  background: var(--line);
+}
+
+.label-tool-page .tool-metrics > div {
+  min-width: 0;
+  padding: 8px 9px;
+  background: var(--surface-solid);
+}
+
+.label-tool-page .tool-metrics dt {
+  font-size: 9px;
+}
+
+.label-tool-page .tool-metrics dd {
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.label-inspector-disclosure {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.label-inspector-disclosure summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+  padding: 7px 0;
+}
+
+.label-inspector-disclosure > div {
+  padding: 1px 0 10px;
+}
+
+.label-inspector-disclosure .fps-field {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.label-inspector-disclosure select {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-dark);
+  border-radius: 6px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.label-tool-page .corner-progress {
+  margin-top: 11px;
+}
+
+.label-tool-page .inspector-actions,
+.label-tool-page .alignment-controls {
+  margin-top: 8px;
+}
+
+.label-tool-page .export-actions {
+  gap: 5px;
+  padding: 0;
+  background: transparent;
+}
+
+.label-tool-page .export-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: var(--line);
+  background: var(--surface-solid);
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .label-tool-page .label-page-header {
+    grid-template-columns: minmax(0, 1fr) 220px;
+  }
+
+  .label-source-panel {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+
+  .label-tool-page .label-toolbar {
+    grid-template-columns: auto auto auto minmax(108px, 1fr);
+  }
+
+  .label-tool-cluster {
+    padding-inline: 7px;
+  }
+
+  .label-tool-page .label-tool-group button {
+    padding-inline: 6px;
+    font-size: 10px;
+  }
+
+  .label-tool-page .label-workspace {
+    grid-template-columns: minmax(0, 1fr) 286px;
+  }
+}

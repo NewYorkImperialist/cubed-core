@@ -1,0 +1,172 @@
+# Third-party notices
+
+Status: source-repository dependency and copied-material notice.
+
+This file records selected direct runtime dependencies and third-party material
+copied into the repository. `pyproject.toml`, `uv.lock`,
+`apps/lab-web/package.json`, and `apps/lab-web/package-lock.json` are the exact
+dependency declaration and resolution authorities. Optional development,
+build-backend, research-GPU, and training dependencies are not exhaustively
+restated here.
+
+The tagged source tree and GitHub-generated source archives contain no compiled
+application binary, container image, platform wheel, emitted browser bundle,
+model or checkpoint package, training dataset, or capture-media binary.
+Manually uploaded release assets, if published, are
+separate distributions and are not covered by this source-repository notice.
+
+`make release-evidence` preserves selected lock-derived CycloneDX reports,
+repository notices, declaration and lock inputs, a manifest, and checksums for
+one clean Git commit. It records mechanical evidence; it does not determine
+license compatibility or legal clearance.
+
+## Browser runtime
+
+Exact npm tarball URLs and integrity values are recorded in
+`apps/lab-web/package-lock.json`.
+
+| Component | Locked version | Use | License evidence | Source |
+| --- | ---: | --- | --- | --- |
+| `react` | 18.3.1 | User interface runtime | `MIT`; installed package file `LICENSE` | <https://github.com/facebook/react/tree/v18.3.1/packages/react>; exact package tarball and integrity in the npm lock |
+| `react-dom` | 18.3.1 | Browser rendering | `MIT`; installed package file `LICENSE` | <https://github.com/facebook/react/tree/v18.3.1/packages/react-dom>; exact package tarball and integrity in the npm lock |
+| `react-router-dom` | 7.18.2 | Local workbench routing | `MIT`; installed package file `LICENSE.md` | <https://github.com/remix-run/react-router/tree/react-router%407.18.2/packages/react-router-dom>; exact package tarball and integrity in the npm lock |
+
+The rows above cover the direct browser-runtime roots. The lock-derived
+frontend SBOM records the resolved lock closure. No emitted browser build is
+distributed in the source-repository release.
+
+## Python runtime
+
+Python wheels are installed from package indexes and are not vendored in this
+source tree. `pyproject.toml` is the declaration authority and `uv.lock` is the
+universal resolution authority. Wheel contents and notices vary by selected
+platform and require artifact-specific review if wheels or native binaries are
+redistributed.
+
+| Component | Declaration / locked version | Use | License evidence | Exact version reference |
+| --- | --- | --- | --- | --- |
+| FastAPI | `>=0.115,<1` / 0.139.2 | HTTP application framework | `MIT`; wheel file `licenses/LICENSE` | <https://pypi.org/project/fastapi/0.139.2/> |
+| jsonschema | `>=4.23,<5` / 4.26.0 | Fail-closed JSON Schema validation | `MIT`; wheel file `licenses/COPYING` | <https://pypi.org/project/jsonschema/4.26.0/> |
+| python-multipart | `>=0.0.9` / 0.0.32 | Multipart upload parsing | `Apache-2.0`; wheel file `licenses/LICENSE.txt` | <https://pypi.org/project/python-multipart/0.0.32/> |
+| Send2Trash | `>=1.8,<2` / 1.8.3 | Move local workspace videos to the operating-system Trash | `BSD-3-Clause`; wheel file `LICENSE` | <https://pypi.org/project/Send2Trash/1.8.3/> |
+| Uvicorn | `[standard]>=0.30,<1` / 0.51.0 | ASGI server | `BSD-3-Clause`; wheel file `licenses/LICENSE.md` | <https://pypi.org/project/uvicorn/0.51.0/> |
+| NumPy | `>=1.26,<3` / 1.26.4 | Label/decode numerical runtime | `BSD-3-Clause` project license; selected wheels contain additional bundled third-party and runtime notices outside this source-release inventory | <https://pypi.org/project/numpy/1.26.4/> |
+| OpenCV Python headless | `>=4.10,<5` / 4.11.0.86 | Video, pose, and labeling helpers | `Apache-2.0` metadata plus wheel `LICENSE.txt` and `LICENSE-3RD-PARTY.txt` | <https://pypi.org/project/opencv-python-headless/4.11.0.86/> |
+| ONNX Runtime | `==1.23.2` in camera-model profiles | Camera model inference | `MIT`; platform wheel/bundled notices still require release-specific review | <https://pypi.org/project/onnxruntime/1.23.2/> and <https://github.com/microsoft/onnxruntime/tree/v1.23.2> |
+
+The universal lock contains 105 package records with artifact hashes. With the
+pinned uv 0.11.16 generator, the CycloneDX 1.5 profiles contain 41 components
+for the developer workbench, 49 for CPU camera models, 55 for GPU camera
+models, 74 for research GPU, and 87 for training. These inventories do not
+replace license files or notices in a selected platform distribution.
+
+## Build tooling
+
+Cubed Core pins uv 0.11.16 to resolve and synchronize `uv.lock` and to produce
+ephemeral CycloneDX 1.5 checks. The Python distribution declares
+`MIT OR Apache-2.0` and ships both primary license files. CI pins the official
+`astral-sh/setup-uv` v8.1.0 action by commit, while the Docker build mounts the
+official multi-architecture uv 0.11.16 image by digest only for the dependency
+installation step; the uv binary is not retained in the final runtime image.
+Source: <https://github.com/astral-sh/uv/tree/0.11.16>.
+
+`make release-evidence SOURCE_REF=<tag> OUTPUT=<outside-path>` requires the
+pinned uv 0.11.16, Node 22.23.1, and npm 10.9.8 generators. It emits
+deterministic CycloneDX 1.5 reports for the five Python lock profiles and the
+frontend lock, copies the repository license/notices and declaration/lock
+inputs from their exact Git blobs, verifies byte parity with the clean
+worktree, and binds them to one commit with `manifest.json` and `SHA256SUMS`.
+Artifact and dependency scope is summarized in `docs/LICENSING.md`.
+
+## Repository demo fixtures and separate artifacts
+
+No model or video binary is included in Git. Four small, checksummed JSON
+fixtures for the gtD1 browser replay are committed under
+`apps/lab-web/public/demo/gtd1/`:
+
+| File | Content |
+| --- | --- |
+| `ble-ground-truth.json` | Scrubbed clip-local BLE teacher record |
+| `decode-receipt.json` | Decode and replay receipt |
+| `decode-result.json` | Published reconstruction result |
+| `overlay-track.json` | Display-only camera overlay |
+
+Each named fixture is © 2026 Manas and licensed under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), with creator
+attribution to [Manas](https://github.com/KingBobJoeIV). Indicate changes and
+retain the same license for adaptations. Raw private session records, device
+identifiers, full camera-analysis artifacts, wall-clock timing, and unreleased
+sidecars remain excluded.
+
+The `ble-ground-truth.json` release metadata was simplified for this source
+release. Its move, timing, state, and orientation payloads are unchanged.
+
+Model, checkpoint, dataset, media, and other binary assets described by
+download tooling are separate distributions. They are not part of the tagged
+source tree or covered by `make release-evidence`.
+
+Separate model and dataset identities and limitations, when made available,
+are recorded by the
+[camera-tracker](https://huggingface.co/cubed-core/camera-tracker-v1) and
+[read-trust](https://huggingface.co/cubed-core/read-trust-v1) artifact cards,
+`docs/DATASET.md`, and `docs/EVIDENCE.md`.
+
+## Scope of this notice
+
+This notice and `make release-evidence` cover dependency declarations, selected
+lock resolutions, repository notices, and copied source material for one tagged
+source tree. They do not inventory separately distributed browser builds,
+wheels, native applications, containers, system packages, models, checkpoints,
+datasets, or media. Each such distribution needs its own exact inventory,
+required notices, checksums, provenance, and terms.
+
+The evidence bundle is a checksum-bound mechanical receipt. It is not a
+legal-clearance or license-compatibility conclusion.
+
+## Research data assets
+
+The research decode pipeline (see `docs/DECODER_INTERNALS.md`) ships a small set
+of last-layer algorithm tables consumed by the `--ll-prior 3` code path
+(`detect/ll_alg_prior.py`). The tables below are redistributed under their
+upstream MIT license.
+
+| Component | Files | Use | License | Source |
+| --- | --- | --- | --- | --- |
+| `spencerchubb/cubingapp` algorithm sets | `analysis/data/algsets/{OLL,PLL,COLL,CMLL,2-Look-OLL,2-Look-PLL,2-Look-CMLL}.json` | Last-layer alg dictionary for the decode LL prior | `MIT`, © 2024 Spencer Chubb | Exact source commit `613a49885dc618023368e5f0c2a25024b8c7e9a5`, `tanstack/src/routes/algorithms/algs/` — <https://github.com/spencerchubb/cubingapp> |
+
+`OLL.json` and `PLL.json` contain local generic-terminology edits and added
+final newlines. The other five listed files match the cited upstream commit
+byte-for-byte.
+
+The recognition-fingerprint tables `analysis/data/{oll,pll}_cases.json` are
+self-authored by the Cubed project and are governed by the repository's own
+`AGPL-3.0-only` license.
+
+The contested-license `algtrainer_flat.json` (`tao-yu/Alg-Trainer`) is not
+shipped or loaded.
+
+Full text of the cubingapp MIT license:
+
+```
+MIT License
+
+Copyright (c) 2024 Spencer Chubb
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

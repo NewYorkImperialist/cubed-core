@@ -1,0 +1,358 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/frame-annotations-v1.schema.json",
+  "title": "Cubed Core frame annotations",
+  "description": "Portable, local-first cube face-corner and alignment labels.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "created_at",
+    "source",
+    "image",
+    "frames"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/frame-annotations"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 100
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "capture_id",
+        "filename",
+        "sha256",
+        "fps",
+        "frame_count"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "workspace-capture",
+            "local-file"
+          ]
+        },
+        "capture_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{32}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "frame_count": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height",
+        "coordinate_space"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "coordinate_space": {
+          "const": "display-oriented-video-pixels"
+        }
+      }
+    },
+    "frames": {
+      "type": "array",
+      "maxItems": 200000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "frame_index",
+          "time_seconds",
+          "aligned_label",
+          "faces"
+        ],
+        "properties": {
+          "frame_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000
+          },
+          "time_seconds": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "aligned_label": {
+            "enum": [
+              "aligned",
+              "unaligned",
+              null
+            ]
+          },
+          "faces": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "corners",
+                "visible"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "corners": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "$ref": "#/$defs/point"
+                  }
+                },
+                "visible": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "boolean"
+                  }
+                },
+                "vertices": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 7
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "pinned": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": {
+                    "type": "boolean"
+                  }
+                },
+                "origin": {
+                  "enum": [
+                    "manual",
+                    "pnp-assist",
+                    "model"
+                  ]
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "assist": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "face_name",
+                    "generated"
+                  ],
+                  "properties": {
+                    "face_name": {
+                      "enum": [
+                        "labeled",
+                        "top",
+                        "right",
+                        "bottom",
+                        "left",
+                        "back"
+                      ]
+                    },
+                    "generated": {
+                      "type": "boolean"
+                    },
+                    "intrinsics_source": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "polygons": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "points"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "points": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 128,
+                  "items": {
+                    "$ref": "#/$defs/point"
+                  }
+                }
+              }
+            }
+          },
+          "wireframe": {
+            "oneOf": [
+              {
+                "type": "array",
+                "minItems": 8,
+                "maxItems": 8,
+                "items": {
+                  "$ref": "#/$defs/point"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "kind": {
+                "const": "workspace-capture"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "properties": {
+              "capture_id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "source": {
+            "properties": {
+              "capture_id": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "point": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      ],
+      "items": false
+    }
+  }
+}

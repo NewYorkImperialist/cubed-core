@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/cubed-core-benchmark-v0-manifest.schema.json",
+  "title": "Cubed Core Benchmark v0 public manifest",
+  "description": "A public, rights-cleared 20-30 capture development benchmark. It is not a general training dataset or generalization claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "benchmark_id",
+    "benchmark_version",
+    "release_scope",
+    "evidence_scope",
+    "collection_license",
+    "capture_count",
+    "split_policy",
+    "limitations",
+    "captures"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/benchmark-v0-manifest"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    },
+    "benchmark_version": {
+      "const": "0"
+    },
+    "release_scope": {
+      "const": "public-benchmark"
+    },
+    "evidence_scope": {
+      "const": "development-benchmark-not-generalization-evidence"
+    },
+    "collection_license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "license_id",
+        "attribution",
+        "scope",
+        "artifact_licenses_authoritative",
+        "exceptions"
+      ],
+      "properties": {
+        "license_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "scope": {
+          "const": "selection-and-arrangement-only"
+        },
+        "artifact_licenses_authoritative": {
+          "const": true
+        },
+        "exceptions": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "capture_id",
+              "role",
+              "public_license",
+              "reason"
+            ],
+            "properties": {
+              "capture_id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "role": {
+                "enum": [
+                  "video",
+                  "high_speed_original",
+                  "video_derivation",
+                  "scramble",
+                  "calibration",
+                  "camera_metadata",
+                  "teacher_truth",
+                  "tracker_labels",
+                  "rights_record"
+                ]
+              },
+              "public_license": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 500
+              }
+            }
+          }
+        }
+      }
+    },
+    "capture_count": {
+      "type": "integer",
+      "minimum": 20,
+      "maximum": 30
+    },
+    "split_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "fixed",
+        "splits",
+        "group_policy"
+      ],
+      "properties": {
+        "unit": {
+          "const": "capture"
+        },
+        "fixed": {
+          "const": true
+        },
+        "splits": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "train"
+            },
+            {
+              "const": "validation"
+            },
+            {
+              "const": "test"
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "group_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "session_id",
+            "solver_id",
+            "cube_id",
+            "camera_id",
+            "setup_id"
+          ],
+          "properties": {
+            "session_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "solver_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "cube_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "camera_id": {
+              "$ref": "#/$defs/group_policy"
+            },
+            "setup_id": {
+              "$ref": "#/$defs/group_policy"
+            }
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "captures": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 30,
+      "items": {
+        "$ref": "#/$defs/capture"
+      }
+    }
+  },
+  "$defs": {
+    "group_policy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "disjoint"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "reason"
+          ],
+          "properties": {
+            "mode": {
+              "const": "disclosed-overlap"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 500
+            }
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "bytes",
+        "sha256",
+        "media_type",
+        "public_license",
+        "attribution"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 100
+        },
+        "public_license": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "video_artifact": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/artifact"
+        },
+        {
+          "properties": {
+            "bytes": {
+              "maximum": 104857600
+            }
+          }
+        }
+      ]
+    },
+    "high_speed_video_artifact": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/artifact"
+        },
+        {
+          "properties": {
+            "bytes": {
+              "maximum": 209715200
+            }
+          }
+        }
+      ]
+    },
+    "groups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "solver_id",
+        "cube_id",
+        "camera_id",
+        "setup_id"
+      ],
+      "properties": {
+        "session_id": {
+          "$ref": "#/$defs/group_id"
+        },
+        "solver_id": {
+          "$ref": "#/$defs/group_id"
+        },
+        "cube_id": {
+          "$ref": "#/$defs/group_id"
+        },
+        "camera_id": {
+          "$ref": "#/$defs/group_id"
+        },
+        "setup_id": {
+          "$ref": "#/$defs/group_id"
+        }
+      }
+    },
+    "group_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capture_id",
+        "split",
+        "source_status",
+        "groups",
+        "inputs",
+        "teacher_truth",
+        "rights_record"
+      ],
+      "properties": {
+        "capture_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "test"
+          ]
+        },
+        "source_status": {
+          "const": "approved-for-public-redistribution"
+        },
+        "groups": {
+          "$ref": "#/$defs/groups"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "video",
+            "scramble",
+            "calibration",
+            "camera_metadata"
+          ],
+          "properties": {
+            "video": {
+              "$ref": "#/$defs/video_artifact"
+            },
+            "high_speed_original": {
+              "$ref": "#/$defs/high_speed_video_artifact"
+            },
+            "video_derivation": {
+              "$ref": "#/$defs/artifact"
+            },
+            "scramble": {
+              "$ref": "#/$defs/artifact"
+            },
+            "calibration": {
+              "$ref": "#/$defs/artifact"
+            },
+            "camera_metadata": {
+              "$ref": "#/$defs/artifact"
+            }
+          }
+        },
+        "teacher_truth": {
+          "$ref": "#/$defs/artifact"
+        },
+        "rights_record": {
+          "$ref": "#/$defs/artifact"
+        },
+        "tracker_labels": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    }
+  }
+}

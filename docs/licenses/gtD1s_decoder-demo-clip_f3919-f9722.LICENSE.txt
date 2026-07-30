@@ -1,0 +1,18 @@
+gtD1s decoder demo clip
+
+File: gtD1s_decoder-demo-clip_f3919-f9722.mp4
+Creator: Manas (https://github.com/KingBobJoeIV)
+Copyright: 2026 Manas
+Source: https://github.com/KingBobJoeIV/cubed-core/releases
+
+This recording is licensed under the Creative Commons
+Attribution-ShareAlike 4.0 International license (CC BY-SA 4.0):
+
+https://creativecommons.org/licenses/by-sa/4.0/
+
+When sharing this recording or an adaptation, retain the attribution above,
+link to the license, indicate whether changes were made, and distribute
+adaptations under the same license.
+
+This notice applies only to the named video. Repository code, model artifacts,
+other media, trademarks, and third-party material have their own terms.

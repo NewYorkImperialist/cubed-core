@@ -1,0 +1,389 @@
+.color-calibration-sampler {
+  overflow: hidden;
+  border: 1px solid var(--line-dark);
+  background: var(--surface-solid);
+}
+
+.color-calibration-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 14px;
+}
+
+.color-calibration-head h3 {
+  display: inline;
+  margin: 0 0 0 8px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.color-calibration-head p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.color-calibration-recommended {
+  border: 1px solid color-mix(in srgb, var(--green) 45%, var(--line));
+  padding: 3px 6px;
+  background: color-mix(in srgb, var(--green) 8%, var(--surface-solid));
+  color: var(--status-ready);
+  font-family: var(--tool-mono, monospace);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.color-calibration-progress {
+  flex: none;
+  padding-top: 3px;
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono, monospace);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.color-calibration-grid {
+  display: grid;
+  grid-template-columns: minmax(480px, 1.45fr) minmax(300px, 0.55fr);
+  min-width: 0;
+}
+
+.color-calibration-video-column {
+  min-width: 0;
+  padding: 14px;
+}
+
+.color-calibration-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--line-dark);
+  background: var(--media-letterbox);
+}
+
+.color-calibration-stage video,
+.color-calibration-hit-target {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.color-calibration-stage video {
+  display: block;
+  object-fit: contain;
+}
+
+.color-calibration-hit-target {
+  z-index: 2;
+  overflow: visible;
+  cursor: crosshair;
+  outline: none;
+}
+
+.color-calibration-hit-target:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--blue);
+}
+
+.color-calibration-crosshair {
+  pointer-events: none;
+}
+
+.color-calibration-crosshair circle,
+.color-calibration-crosshair line {
+  fill: color-mix(in srgb, var(--blue) 14%, transparent);
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.color-calibration-crosshair line {
+  fill: none;
+}
+
+.color-calibration-target-badge {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  padding: 5px 8px;
+  background: rgba(7, 14, 18, 0.82);
+  color: #f4f7f8;
+  font-family: var(--tool-mono, monospace);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.color-calibration-video-placeholder {
+  display: grid;
+  position: absolute;
+  inset: 0;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--tool-mono, monospace);
+  font-size: 11px;
+}
+
+.color-calibration-transport {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(120px, 1fr) auto;
+  align-items: center;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-row);
+}
+
+.color-calibration-transport button {
+  align-self: stretch;
+  min-width: 42px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 8px 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--tool-mono, monospace);
+  font-size: 11px;
+}
+
+.color-calibration-transport button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--ink);
+}
+
+.color-calibration-transport button:focus-visible,
+.color-calibration-patch:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.color-calibration-transport button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.color-calibration-transport .color-calibration-play {
+  min-width: 62px;
+  color: var(--blue);
+  font-weight: 750;
+}
+
+.color-calibration-transport input[type="range"] {
+  min-width: 0;
+  margin: 0 12px;
+  accent-color: var(--blue);
+}
+
+.color-calibration-transport output {
+  border-left: 1px solid var(--line);
+  padding: 8px 10px;
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono, monospace);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.color-calibration-inline-error {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--status-blocked);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.color-calibration-targets {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  padding: 14px;
+  background: var(--surface-row);
+}
+
+.color-calibration-target-head {
+  margin-bottom: 9px;
+}
+
+.color-calibration-target-head strong,
+.color-calibration-target-head small {
+  display: block;
+}
+
+.color-calibration-target-head strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.color-calibration-target-head small {
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.color-calibration-patch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.color-calibration-patch {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 7px;
+  background: var(--surface-solid);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.color-calibration-patch:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.color-calibration-patch-active {
+  box-shadow: inset 3px 0 0 var(--blue);
+  background: color-mix(in srgb, var(--blue) 6%, var(--surface-solid));
+}
+
+.color-calibration-patch:disabled {
+  cursor: default;
+  opacity: 0.64;
+}
+
+.color-calibration-patch-preview {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid var(--line-dark);
+  background: var(--surface-subtle);
+}
+
+.color-calibration-patch-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  object-fit: cover;
+}
+
+.color-calibration-patch > span:last-child,
+.color-calibration-patch strong,
+.color-calibration-patch small {
+  display: block;
+  min-width: 0;
+}
+
+.color-calibration-patch strong {
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.color-calibration-patch small {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.color-calibration-swatch {
+  display: inline-block;
+  width: 19px;
+  height: 19px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: var(--swatch-color);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.color-calibration-swatch-white {
+  --swatch-color: #f5f5ed;
+}
+
+.color-calibration-swatch-green {
+  --swatch-color: #2a9d62;
+}
+
+.color-calibration-swatch-red {
+  --swatch-color: #d94a45;
+}
+
+.color-calibration-swatch-blue {
+  --swatch-color: #2877b9;
+}
+
+.color-calibration-swatch-orange {
+  --swatch-color: #e57b35;
+}
+
+.color-calibration-swatch-yellow {
+  --swatch-color: #efc545;
+}
+
+.color-calibration-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.color-calibration-actions .button {
+  min-width: 170px;
+}
+
+.color-calibration-message {
+  margin: 10px 0 0;
+  color: var(--status-ready);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.color-calibration-message-error {
+  color: var(--status-blocked);
+}
+
+@media (max-width: 1120px) {
+  .color-calibration-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .color-calibration-targets {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .color-calibration-patch-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

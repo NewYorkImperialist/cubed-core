@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/color-calibration-v1.schema.json",
+  "title": "Cubed Core server grid color calibration",
+  "description": "Exact export contract for the paired server's geometry-only OpenCV-Lab sampler. The API additionally checks finite numbers, quality thresholds, centroid/sample consistency, and centroid separation.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "color_space",
+    "geometry",
+    "thresholds",
+    "order",
+    "frames_per_color",
+    "samples_per_frame",
+    "centroids",
+    "samples",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/color-calibration-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "color_space": {
+      "const": "opencv_bgr_lab_uint8_v1"
+    },
+    "geometry": {
+      "type": "object",
+      "required": [
+        "target_square_fraction",
+        "grid_rows",
+        "grid_columns",
+        "central_patch_fraction",
+        "coordinate_space"
+      ],
+      "properties": {
+        "target_square_fraction": {
+          "const": 0.56
+        },
+        "grid_rows": {
+          "const": 3
+        },
+        "grid_columns": {
+          "const": 3
+        },
+        "central_patch_fraction": {
+          "const": 0.4
+        },
+        "coordinate_space": {
+          "const": "rotated_video_frame_pixels"
+        }
+      },
+      "additionalProperties": false
+    },
+    "thresholds": {
+      "type": "object",
+      "required": [
+        "minimum_l",
+        "uniformity_maximum",
+        "stability_maximum",
+        "collision_minimum",
+        "distance_weights"
+      ],
+      "properties": {
+        "minimum_l": {
+          "const": 40
+        },
+        "uniformity_maximum": {
+          "const": 28
+        },
+        "stability_maximum": {
+          "const": 10
+        },
+        "collision_minimum": {
+          "const": 15
+        },
+        "distance_weights": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": 0.15
+            },
+            {
+              "const": 1
+            },
+            {
+              "const": 1
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "additionalProperties": false
+    },
+    "order": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "white"
+        },
+        {
+          "const": "green"
+        },
+        {
+          "const": "red"
+        },
+        {
+          "const": "blue"
+        },
+        {
+          "const": "orange"
+        },
+        {
+          "const": "yellow"
+        }
+      ],
+      "items": false,
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "frames_per_color": {
+      "const": 5
+    },
+    "samples_per_frame": {
+      "const": 9
+    },
+    "centroids": {
+      "$ref": "#/$defs/centroid_map"
+    },
+    "samples": {
+      "$ref": "#/$defs/sample_map"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "captured_unix_ms",
+        "collection_started_unix_ms",
+        "camera_facing",
+        "mirrored",
+        "frame_width",
+        "frame_height",
+        "camera_device_type",
+        "camera_format_width",
+        "camera_format_height",
+        "exposure_duration_seconds",
+        "iso",
+        "white_balance_gains",
+        "lens_position",
+        "exposure_locked",
+        "white_balance_locked",
+        "focus_locked",
+        "app",
+        "sampler"
+      ],
+      "properties": {
+        "captured_unix_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "collection_started_unix_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "camera_facing": {
+          "enum": [
+            "front",
+            "back",
+            "unknown"
+          ]
+        },
+        "mirrored": {
+          "type": "boolean"
+        },
+        "frame_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "camera_device_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "camera_format_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "camera_format_height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exposure_duration_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "iso": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "white_balance_gains": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 32
+            },
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 32
+            },
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 32
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "lens_position": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "exposure_locked": {
+          "const": true
+        },
+        "white_balance_locked": {
+          "const": true
+        },
+        "focus_locked": {
+          "const": true
+        },
+        "app": {
+          "const": "cubed-capture-ios"
+        },
+        "sampler": {
+          "const": "server_grid_opencv_lab_v1"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "lab_vector": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 255
+        }
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "sample_set": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/lab_vector"
+      },
+      "minItems": 45,
+      "maxItems": 45
+    },
+    "centroid_map": {
+      "type": "object",
+      "required": [
+        "white",
+        "green",
+        "red",
+        "blue",
+        "orange",
+        "yellow"
+      ],
+      "properties": {
+        "white": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "green": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "red": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "blue": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "orange": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "yellow": {
+          "$ref": "#/$defs/lab_vector"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sample_map": {
+      "type": "object",
+      "required": [
+        "white",
+        "green",
+        "red",
+        "blue",
+        "orange",
+        "yellow"
+      ],
+      "properties": {
+        "white": {
+          "$ref": "#/$defs/sample_set"
+        },
+        "green": {
+          "$ref": "#/$defs/sample_set"
+        },
+        "red": {
+          "$ref": "#/$defs/sample_set"
+        },
+        "blue": {
+          "$ref": "#/$defs/sample_set"
+        },
+        "orange": {
+          "$ref": "#/$defs/sample_set"
+        },
+        "yellow": {
+          "$ref": "#/$defs/sample_set"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

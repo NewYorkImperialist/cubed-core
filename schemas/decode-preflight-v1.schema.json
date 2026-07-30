@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/decode-preflight-v1.schema.json",
+  "title": "Cubed Core decode preflight",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "recording_id",
+    "status",
+    "ready",
+    "execution_allowed",
+    "profile",
+    "config",
+    "checks",
+    "missing",
+    "warnings"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/decode-preflight"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "recording_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "blocked"
+      ]
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "execution_allowed": {
+      "type": "boolean"
+    },
+    "profile": {
+      "const": "local_camera_v1"
+    },
+    "config": {
+      "type": "object"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "detail"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "warning",
+              "fail"
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

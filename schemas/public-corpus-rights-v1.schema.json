@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/public-corpus-rights-v1.schema.json",
+  "title": "Cubed Core public corpus rights record",
+  "description": "A reviewed public-release decision for one generic corpus capture. The retained signed evidence remains outside the public dataset.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "record_id",
+    "capture_id",
+    "source_status",
+    "public_release",
+    "terms_version",
+    "terms_sha256",
+    "acceptance_receipt_sha256",
+    "approved_at",
+    "reviewer_id",
+    "authorization",
+    "artifacts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/public-corpus-rights"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^public-[a-f0-9]{32}$"
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "source_status": {
+      "const": "approved-for-public-redistribution"
+    },
+    "public_release": {
+      "const": true
+    },
+    "terms_version": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200,
+      "pattern": "^(?!.*[Dd][Rr][Aa][Ff][Tt]).+$"
+    },
+    "terms_sha256": {
+      "$ref": "#/$defs/nonzero_sha256"
+    },
+    "acceptance_receipt_sha256": {
+      "description": "SHA-256 of the retained signed or otherwise reviewable acceptance receipt. The receipt itself remains outside the public corpus.",
+      "$ref": "#/$defs/nonzero_sha256"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewer_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{2,99}$"
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rights_holder_authorized",
+        "recorded_subjects_authorized",
+        "public_redistribution_authorized",
+        "ml_research_authorized",
+        "privacy_review_approved",
+        "audio_removed"
+      ],
+      "properties": {
+        "rights_holder_authorized": {
+          "const": true
+        },
+        "recorded_subjects_authorized": {
+          "const": true
+        },
+        "public_redistribution_authorized": {
+          "const": true
+        },
+        "ml_research_authorized": {
+          "const": true
+        },
+        "privacy_review_approved": {
+          "const": true
+        },
+        "audio_removed": {
+          "const": true
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    }
+  },
+  "$defs": {
+    "nonzero_sha256": {
+      "type": "string",
+      "pattern": "^(?!0{64}$)[a-f0-9]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "path",
+        "bytes",
+        "sha256",
+        "public_license",
+        "attribution"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{2,99}$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[A-Za-z0-9._/-]+$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/nonzero_sha256"
+        },
+        "public_license": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,118 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cubed-core"
+version = "1.0.0"
+description = "Local research workbench for camera-based 3x3 puzzle-cube reconstruction"
+readme = "README.md"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES"]
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "jsonschema>=4.23,<5",
+    "python-multipart>=0.0.9",
+    "send2trash>=1.8,<2",
+    "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx2>=2.9,<3",
+    "pytest>=8",
+    "ruff>=0.9",
+]
+label = [
+    "numpy>=1.26,<3",
+    "opencv-python-headless>=4.10,<5",
+]
+decode = [
+    "numpy>=1.26,<3",
+]
+tracker-cpu = [
+    "numpy>=1.26,<2",
+    "opencv-python-headless>=4.10,<5",
+    "onnxruntime==1.23.2",
+]
+tracker-gpu = [
+    "numpy>=1.26,<2",
+    "opencv-python-headless>=4.10,<5",
+    "onnxruntime-gpu[cuda,cudnn]==1.23.2",
+]
+research-gpu = [
+    "av>=12,<17",
+    "onnx==1.17.0",
+    "pynvvideocodec==2.1.0",
+    "scipy>=1.13,<2",
+    "torch==2.4.0",
+]
+training = [
+    "numpy==1.26.4",
+    "onnx==1.17.0",
+    "onnxruntime==1.23.2",
+    "onnxslim==0.1.94",
+    "opencv-python==4.11.0.86",
+    "torch==2.2.2",
+    "torchvision==0.17.2",
+    "ultralytics==8.4.76",
+]
+
+[project.scripts]
+cubed-core = "cubed_core.cli:main"
+
+[tool.uv]
+conflicts = [
+    [
+        { extra = "tracker-cpu" },
+        { extra = "tracker-gpu" },
+    ],
+    [
+        { extra = "training" },
+        { extra = "tracker-gpu" },
+    ],
+    [
+        { extra = "training" },
+        { extra = "research-gpu" },
+    ],
+]
+
+[tool.setuptools]
+# Only the installable Python package under src/ is packaged into the wheel. The
+# repo-root research code (detect/, core/, analysis/, and the research scripts in
+# scripts/) is a research toolkit that runs from a repository checkout with the
+# repo root and scripts/ on sys.path (see scripts/run_research_decode.sh); it is
+# intentionally not shipped in the wheel.
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "scripts/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+# The research decode/reads code keeps its own established style and is not
+# reformatted or linted with the packaged code's rules: the detect/, core/, and
+# analysis/ trees plus the research script entrypoints in scripts/.
+extend-exclude = [
+    "detect",
+    "core",
+    "analysis",
+    "scripts/calib_util.py",
+    "scripts/cell_common.py",
+    "scripts/extract_alignfeat.py",
+    "scripts/gen_motion_events.py",
+    "scripts/geo_read.py",
+    "scripts/gpu_decode.py",
+    "scripts/gpu_reads.py",
+    "scripts/occ_mask.py",
+    "scripts/onnx_dynamic_batch.py",
+    "scripts/trellis_gt.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

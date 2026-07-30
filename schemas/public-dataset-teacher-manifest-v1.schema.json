@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/public-dataset-teacher-manifest-v1.schema.json",
+  "title": "Cubed Core public Benchmark v0 teacher inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "benchmark_id",
+    "benchmark_version",
+    "benchmark_manifest_sha256",
+    "capture_count",
+    "artifacts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/public-dataset-teacher-manifest"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    },
+    "benchmark_version": {
+      "const": "0"
+    },
+    "benchmark_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "capture_count": {
+      "type": "integer",
+      "minimum": 20,
+      "maximum": 30
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 30,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capture_id",
+        "path",
+        "bytes",
+        "sha256",
+        "media_type",
+        "public_license",
+        "attribution"
+      ],
+      "properties": {
+        "capture_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^[A-Za-z0-9._/-]+$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "media_type": {
+          "const": "application/json"
+        },
+        "public_license": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/capture-derivation-v1.schema.json",
+  "title": "Cubed Core deterministic frame-rate derivation receipt",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "kind",
+    "created_at",
+    "source",
+    "transform",
+    "ffmpeg",
+    "derivative"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/frame-rate-derivation"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "every-other-frame-240-to-120"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "recording_id",
+        "path",
+        "bytes",
+        "sha256",
+        "probe_at_import",
+        "probe_before_derivation"
+      ],
+      "properties": {
+        "recording_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "probe_at_import": {
+          "type": "object"
+        },
+        "probe_before_derivation": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "transform": {
+      "type": "object",
+      "required": [
+        "source_frame_index_origin",
+        "source_frame_index_step",
+        "frame_selection",
+        "filter",
+        "source_frame_rate",
+        "target_frame_rate",
+        "timestamp_policy",
+        "audio_policy",
+        "subtitle_policy",
+        "data_stream_policy",
+        "video_encoder",
+        "expected_output_frame_count",
+        "semantic_determinism",
+        "compressed_byte_determinism"
+      ],
+      "properties": {
+        "source_frame_index_origin": {
+          "const": 0
+        },
+        "source_frame_index_step": {
+          "const": 2
+        },
+        "frame_selection": {
+          "const": "zero-based source frames 0,2,4,..."
+        },
+        "filter": {
+          "type": "string",
+          "pattern": "^select=not\\(mod\\(n\\\\,2\\)\\),setpts=N\\*[1-9][0-9]*/\\([1-9][0-9]*\\*TB\\)$"
+        },
+        "source_frame_rate": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"
+        },
+        "target_frame_rate": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"
+        },
+        "timestamp_policy": {
+          "const": "retime-selected-frames-to-uniform-derived-cadence"
+        },
+        "audio_policy": {
+          "const": "discard"
+        },
+        "subtitle_policy": {
+          "const": "discard"
+        },
+        "data_stream_policy": {
+          "const": "discard"
+        },
+        "video_encoder": {
+          "const": "libx264-crf18-yuv420p-single-thread"
+        },
+        "expected_output_frame_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "semantic_determinism": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compressed_byte_determinism": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "ffmpeg": {
+      "type": "object",
+      "required": [
+        "executable",
+        "version_argv",
+        "version_output",
+        "version_output_sha256",
+        "argv",
+        "working_directory",
+        "target_frame_rate"
+      ],
+      "properties": {
+        "executable": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version_argv": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "type": "string"
+          }
+        },
+        "version_output": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "version_output_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "argv": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 128,
+          "items": {
+            "type": "string"
+          }
+        },
+        "working_directory": {
+          "const": "workspace-root"
+        },
+        "target_frame_rate": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*/[1-9][0-9]*$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "derivative": {
+      "type": "object",
+      "required": [
+        "recording_id",
+        "path",
+        "bytes",
+        "sha256",
+        "probe",
+        "probe_at_import"
+      ],
+      "properties": {
+        "recording_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "probe": {
+          "type": "object"
+        },
+        "probe_at_import": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

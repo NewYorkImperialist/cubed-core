@@ -1,0 +1,8 @@
+# Hash-verified demo replay fixtures must keep their exact committed bytes.
+# Line-ending conversion (e.g. core.autocrlf=true) would break their pinned
+# SHA-256 checks in the web app.
+apps/lab-web/public/demo/** -text
+# Shell scripts and make recipes execute under POSIX shells and must check
+# out with LF endings on every platform.
+*.sh text eol=lf
+Makefile text eol=lf

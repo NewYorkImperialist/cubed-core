@@ -1,0 +1,26 @@
+[
+  {
+    "id": "recording-import",
+    "name": "Existing-video workspace import",
+    "status": "available",
+    "surface": "Add video"
+  },
+  {
+    "id": "annotation",
+    "name": "Local polygon and rigid cube-pose labeling with JSON/dataset export",
+    "status": "available",
+    "surface": "Label"
+  },
+  {
+    "id": "tracker",
+    "name": "Opt-in camera-evidence tracker used by Decode (weights not bundled)",
+    "status": "available",
+    "surface": "Decode"
+  },
+  {
+    "id": "decoder",
+    "name": "Camera-to-moves decode (release assets required)",
+    "status": "available",
+    "surface": "Decode"
+  }
+]

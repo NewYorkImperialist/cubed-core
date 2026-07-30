@@ -1,0 +1,41 @@
+{
+  "schema": "cubed-core/benchmark-v0-prediction",
+  "schema_version": 1,
+  "benchmark_id": "replaced-by-test-builder",
+  "benchmark_version": "0",
+  "capture_id": "00000000000000000000000000000000",
+  "system": {
+    "name": "synthetic-contract-system",
+    "version": "0",
+    "implementation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "config_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "model_artifacts": [
+      {
+        "name": "synthetic-tracker",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ],
+    "run_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "inference": {
+    "lane": "camera-only",
+    "teacher_access": "none-declared",
+    "teacher_artifacts_visible": false,
+    "input_artifacts": []
+  },
+  "result": {
+    "status": "completed",
+    "moves": [],
+    "runtime_ms": 25,
+    "abstention_reason": null
+  },
+  "component_metrics": [
+    {
+      "name": "synthetic-pose-score",
+      "value": 0.75,
+      "unit": "ratio",
+      "sample_count": 10,
+      "scope": "component-only-not-end-to-end"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/tracker-model-package-spec-v1.schema.json",
+  "title": "Cubed Core tracker model package specification",
+  "description": "Private build input for a deterministic camera-tracker-v1 model package. Input paths are never copied into generated metadata.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "purpose",
+    "profile",
+    "onnx_input_trust",
+    "model_card",
+    "artifacts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/tracker-model-package-spec-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "purpose": {
+      "enum": [
+        "local-review",
+        "publication-candidate"
+      ]
+    },
+    "profile": {
+      "const": "camera-tracker-v1"
+    },
+    "onnx_input_trust": {
+      "const": "operator-reviewed",
+      "description": "Explicit acknowledgement that the supplied ONNX files were obtained from a trusted source; ONNX Runtime loading is not a sandbox."
+    },
+    "model_card": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,99}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "path",
+        "license",
+        "source",
+        "redistribution"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "role": {
+          "enum": [
+            "alignment-classifier",
+            "face-pose"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "redistribution": {
+          "enum": [
+            "approved",
+            "external-only",
+            "train-your-own",
+            "withheld"
+          ]
+        }
+      }
+    }
+  }
+}

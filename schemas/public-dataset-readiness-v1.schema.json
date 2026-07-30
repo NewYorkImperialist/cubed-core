@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/public-dataset-readiness-v1.schema.json",
+  "title": "Cubed Core public dataset readiness report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "ready",
+    "dataset_id",
+    "release_id",
+    "evidence_scope",
+    "capture_count",
+    "artifact_count",
+    "capture_artifact_bytes",
+    "manifest_sha256",
+    "benchmark_v0_included",
+    "checks"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/public-dataset-readiness-report"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "ready": {
+      "const": true
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+    },
+    "release_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+    },
+    "evidence_scope": {
+      "const": "corpus-not-benchmark-or-generalization-evidence"
+    },
+    "capture_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "artifact_count": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "capture_artifact_bytes": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "benchmark_v0_included": {
+      "type": "boolean"
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check",
+          "status"
+        ],
+        "properties": {
+          "check": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "status": {
+            "const": "pass"
+          }
+        }
+      }
+    }
+  }
+}

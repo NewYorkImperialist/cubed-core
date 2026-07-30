@@ -1,0 +1,93 @@
+.DS_Store
+.env*
+!.env.example
+
+# Local tooling and session state.
+/.agents/
+/.claude/
+/.codex/
+/AGENTS.md
+/CLAUDE.md
+/docs/AGENT_BRIEF.md
+
+# Already matched by .env* above; listed explicitly since scripts/run_workbench_hub.sh
+# creates it and this is the one file it is not allowed to commit.
+.env.hub
+.venv*/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+apps/lab-web/dist/
+apps/lab-web/playwright-report/
+apps/lab-web/test-results/
+apps/lab-web/node_modules/
+/output/
+/tmp/
+*.pem
+*.key
+
+build/
+workspace/
+graphify-out/
+
+# Binary model, dataset, capture, and export artifacts are private-by-default.
+# Patterns without a slash apply at every depth; force-add only after review.
+*.onnx
+*.pt
+*.pth
+*.engine
+*.ckpt
+*.safetensors
+*.tflite
+*.mlmodel
+*.mlmodelc/
+*.mlpackage/
+*.npz
+*.npy
+*.pkl
+*.pickle
+*.joblib
+*.bin
+*.avi
+*.m4v
+*.mkv
+*.mov
+*.mp4
+*.webm
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Keep arbitrary files under conventional model/data roots out until reviewed,
+# while allowing small provenance/readme placeholders to be tracked normally.
+models/**
+weights/**
+datasets/**
+data/**
+!models/**/
+!weights/**/
+!datasets/**/
+!data/**/
+!models/**/README.md
+!weights/**/README.md
+!datasets/**/README.md
+!data/**/README.md
+!models/**/manifest.json
+!weights/**/manifest.json
+!datasets/**/manifest.json
+!data/**/manifest.json
+!models/**/.gitkeep
+!weights/**/.gitkeep
+!datasets/**/.gitkeep
+!data/**/.gitkeep
+
+data/private/
+
+# The public-dataset download destination is user-fetched content, never tracked.
+datasets/public/

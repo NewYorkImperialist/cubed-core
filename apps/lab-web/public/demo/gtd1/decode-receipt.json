@@ -1,0 +1,52 @@
+{
+  "capture_id": "6fd2d3257fe2b2107941ec20bbbdc2bc",
+  "evidence_scope": "reconstruction-evidence-with-replay-check",
+  "finished_at": "2026-07-26T22:13:21.870396+00:00",
+  "job_id": "57d2f76317557205e479b14602dcc1f4",
+  "profile": "local_camera_v1",
+  "replay_check": {
+    "detail": "the emitted moves replay from the sealed scramble to a solved cube",
+    "move_count": 77,
+    "performed": true,
+    "solved_reached": true
+  },
+  "request_sha256": "ecc97349e054597bdb4fd9734d1ff5860330c4a21d9d448a3cf90ea5662606f7",
+  "result_bytes": 2288,
+  "result_sha256": "9cbb4b17860dd88af61eb1da68f86c9c60c0f37054c5eeca505126fbfac8702b",
+  "result_status": "completed",
+  "runner_provenance": {
+    "command_sha256": "56ecf9bc3d8bfa08b53ff5c6c6ad239376ccbf8d1b53e221f1f3d3331b8f1dc6",
+    "executable": {
+      "bytes": 6525,
+      "sha256": "699f12bd1b0bd25158af85e5f39a49c688d37b05b408778dc0ed6a6e467c6e1e"
+    },
+    "identity_status": "unverified-external-identity",
+    "implementation_files": [],
+    "native_module": null,
+    "package": null,
+    "runner_kind": "external",
+    "runner_label": null
+  },
+  "runtime_assets": [
+    {
+      "bytes": 6161045,
+      "id": "alignment-model",
+      "path": "workspace/release-assets/camera-tracker-v1-runtime/artifacts/alignment-classifier.onnx",
+      "sha256": "d715b66ba3d7b500bf841f22f2ae29273baae03880d473e1b1cc2d3064d1cd6f"
+    },
+    {
+      "bytes": 39608237,
+      "id": "pose-model",
+      "path": "workspace/release-assets/camera-tracker-v1-runtime/artifacts/face-pose.onnx",
+      "sha256": "4e72d686ed0389405695d87f6b7dbccdb3496e87142bd0a7269b0fa3efaea75c"
+    },
+    {
+      "bytes": 396374,
+      "id": "read-trust-model",
+      "path": "workspace/release-assets/trust_v1_numpy.npz",
+      "sha256": "3f40e5d5f5f385f8b96547de11b0d92f17d5aa5575302646338e273fb0c5bfd7"
+    }
+  ],
+  "schema": "cubed-core/decode-job-receipt-v1",
+  "schema_version": 1
+}

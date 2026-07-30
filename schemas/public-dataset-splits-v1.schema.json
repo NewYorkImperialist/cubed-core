@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/public-dataset-splits-v1.schema.json",
+  "title": "Cubed Core public Benchmark v0 split inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "benchmark_id",
+    "benchmark_version",
+    "benchmark_manifest_sha256",
+    "unit",
+    "splits"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/public-dataset-splits"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    },
+    "benchmark_version": {
+      "const": "0"
+    },
+    "benchmark_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "unit": {
+      "const": "capture"
+    },
+    "splits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "properties": {
+        "train": {
+          "$ref": "#/$defs/capture_ids"
+        },
+        "validation": {
+          "$ref": "#/$defs/capture_ids"
+        },
+        "test": {
+          "$ref": "#/$defs/capture_ids"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "capture_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{32}$"
+      }
+    }
+  }
+}

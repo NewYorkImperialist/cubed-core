@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/raw-capture-manifest-v1.schema.json",
+  "title": "Cubed Core raw capture manifest",
+  "type": "object",
+  "required": [
+    "content_sha256",
+    "payload"
+  ],
+  "properties": {
+    "content_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

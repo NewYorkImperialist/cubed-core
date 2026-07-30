@@ -1,0 +1,238 @@
+/* Attach or sample calibration, then seal for decode. */
+
+.prepare-card {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+}
+
+.prepare-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-row);
+}
+
+.prepare-row-attached {
+  background: var(--surface-solid);
+}
+
+.prepare-row-heading {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.prepare-row-letter {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line-dark);
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono, monospace);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.prepare-row-heading strong {
+  display: block;
+  font-size: 13px;
+}
+
+.prepare-row-heading p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.prepare-row-state {
+  grid-column: 1 / -1;
+  margin-left: 34px;
+}
+
+.prepare-row-state {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.prepare-row-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prepare-row-check {
+  color: var(--status-ready);
+  font-family: var(--tool-mono, monospace);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.prepare-row-check-blocked {
+  color: var(--status-blocked);
+}
+
+.prepare-row > .color-calibration-sampler,
+.prepare-calibration-disclosure {
+  grid-column: 1 / -1;
+  margin-left: 34px;
+}
+
+.prepare-calibration-disclosure {
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+}
+
+.prepare-calibration-disclosure + .prepare-calibration-disclosure,
+.prepare-row > .color-calibration-sampler + .prepare-calibration-disclosure {
+  margin-top: -4px;
+}
+
+.prepare-calibration-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.prepare-calibration-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.prepare-calibration-disclosure summary::after {
+  content: "+";
+  color: var(--blue);
+  font-family: var(--tool-mono, monospace);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.prepare-calibration-disclosure[open] summary::after {
+  content: "−";
+}
+
+.prepare-calibration-disclosure summary:hover {
+  background: var(--surface-hover);
+}
+
+.prepare-calibration-disclosure summary span,
+.prepare-calibration-disclosure summary strong,
+.prepare-calibration-disclosure summary small {
+  display: block;
+}
+
+.prepare-calibration-disclosure summary strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.prepare-calibration-disclosure summary small {
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.prepare-calibration-disclosure > .color-calibration-sampler {
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+}
+
+.prepare-row .file-action {
+  grid-column: 1 / -1;
+  margin-left: 34px;
+  width: fit-content;
+}
+
+.prepare-calibration-picker {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: flex-end;
+  gap: 10px;
+  margin-left: 34px;
+}
+
+.prepare-calibration-disclosure .prepare-calibration-picker {
+  margin-left: 0;
+  border-top: 1px solid var(--line);
+  padding: 12px;
+  background: var(--surface-row);
+}
+
+.prepare-calibration-picker .field-label {
+  min-width: 160px;
+}
+
+.prepare-calibration-picker select {
+  min-width: 260px;
+}
+
+.prepare-calibration-picker .file-action {
+  grid-column: auto;
+  margin-left: 0;
+}
+
+.prepare-calibration-warning {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--status-warning);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.prepare-message {
+  margin: 0;
+  padding: 11px 14px;
+  background: var(--surface-solid);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.prepare-message-error {
+  color: var(--decode-fail, var(--status-blocked));
+}
+
+.prepare-message-warning {
+  color: var(--status-warning);
+}
+
+@media (max-width: 680px) {
+  .prepare-row {
+    grid-template-columns: 1fr;
+  }
+
+  .prepare-row-state,
+  .prepare-row .file-action,
+  .prepare-calibration-picker,
+  .prepare-row > .color-calibration-sampler,
+  .prepare-calibration-disclosure {
+    margin-left: 0;
+  }
+
+  .prepare-row-state {
+    flex-wrap: wrap;
+  }
+
+  .prepare-calibration-picker select {
+    min-width: 0;
+    width: 100%;
+  }
+}

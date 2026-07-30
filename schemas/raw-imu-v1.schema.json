@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/raw-imu-v1.schema.json",
+  "title": "Cubed Core raw phone IMU capture",
+  "type": "object",
+  "required": [
+    "camera",
+    "device_motion_available",
+    "n",
+    "samples",
+    "was_active"
+  ],
+  "properties": {
+    "camera": {
+      "type": "object",
+      "required": [
+        "facing",
+        "rotation"
+      ],
+      "properties": {
+        "facing": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rotation": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "device_motion_available": {
+      "type": "boolean"
+    },
+    "n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sample"
+      }
+    },
+    "was_active": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "quaternion": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false
+    },
+    "sample": {
+      "type": "object",
+      "required": [
+        "q"
+      ],
+      "properties": {
+        "q": {
+          "$ref": "#/$defs/quaternion"
+        },
+        "t": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

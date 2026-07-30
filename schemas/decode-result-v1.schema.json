@@ -1,0 +1,898 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/decode-result-v1.schema.json",
+  "title": "Cubed Core local decode result",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "recording_id",
+    "status",
+    "profile",
+    "config",
+    "inputs",
+    "moves",
+    "endpoint",
+    "evaluation",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/decode-result"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "recording_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "abstained"
+      ]
+    },
+    "profile": {
+      "const": "local_camera_v1",
+      "description": "The supported camera-only runtime, executable through Decode and the canonical runner."
+    },
+    "config": {
+      "type": "object",
+      "required": [
+        "name",
+        "cfg_hash",
+        "cfg_hash_algorithm"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cfg_hash": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "cfg_hash_algorithm": {
+          "const": "posix-cksum"
+        },
+        "cfg_hash_input": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extras_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "moves": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[UDLRFB](?:'|2)?$"
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "required": [
+        "solved_reached"
+      ],
+      "properties": {
+        "solved_reached": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluation": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "metric",
+            "reach_ll",
+            "teacher_sha256"
+          ],
+          "properties": {
+            "metric": {
+              "const": "reach-ll-onset-with-correct-pre-ll-state"
+            },
+            "reach_ll": {
+              "type": "boolean"
+            },
+            "hit_step": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "deepest_phase": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "first_divergence_phase": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "teacher_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "diagnostic_full_sequence_accuracy": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ground_truth_diagnostic": {
+      "$ref": "decode-ground-truth-diagnostic-v1.schema.json"
+    },
+    "workstation": {
+      "$ref": "#/$defs/workstation"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "runtime_version",
+        "finished_at"
+      ],
+      "properties": {
+        "runtime_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "python_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "numpy_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      ],
+      "items": false
+    },
+    "quad": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/point"
+      }
+    },
+    "nine_numbers": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "type": "number"
+      }
+    },
+    "nine_integers": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "nine_booleans": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "lab_vector": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "face": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corners",
+        "confidence",
+        "keypoint_confidence"
+      ],
+      "properties": {
+        "corners": {
+          "$ref": "#/$defs/quad"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "keypoint_confidence": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "lab",
+        "confidence",
+        "relative_area",
+        "corners"
+      ],
+      "properties": {
+        "slot": {
+          "enum": [
+            "up",
+            "front",
+            "right"
+          ]
+        },
+        "lab": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "items": {
+            "$ref": "#/$defs/lab_vector"
+          }
+        },
+        "confidence": {
+          "$ref": "#/$defs/nine_numbers"
+        },
+        "valid_pixels": {
+          "$ref": "#/$defs/nine_integers"
+        },
+        "total_pixels": {
+          "$ref": "#/$defs/nine_integers"
+        },
+        "used_fallback": {
+          "$ref": "#/$defs/nine_booleans"
+        },
+        "relative_area": {
+          "type": "number",
+          "minimum": 0
+        },
+        "corners": {
+          "$ref": "#/$defs/quad"
+        }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "motion"
+      ],
+      "properties": {
+        "motion": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "aligned": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "aligned_streak": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "face_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "gated": {
+          "type": "boolean"
+        },
+        "faces": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/face"
+          }
+        },
+        "reads": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/read"
+          }
+        }
+      }
+    },
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "f0",
+        "f1",
+        "event",
+        "top"
+      ],
+      "properties": {
+        "f0": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "f1": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "top": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "orientation",
+              "score"
+            ],
+            "properties": {
+              "path": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 32
+                    }
+                  }
+                ]
+              },
+              "orientation": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 100
+                    }
+                  }
+                ]
+              },
+              "score": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "workstation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "schema_version",
+        "video",
+        "initialization",
+        "window",
+        "warnings",
+        "frames"
+      ],
+      "properties": {
+        "schema": {
+          "const": "cubed-core/decode-workstation-v1"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "video": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes",
+            "fps",
+            "frame_count",
+            "width",
+            "height",
+            "encoded"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fps": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "description": "Frame rate reported by the decoder used for the workstation timeline."
+            },
+            "frame_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000000,
+              "description": "Frames decoded into the workstation timeline."
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "description": "Width of the decoded coordinate space used by overlay points."
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "description": "Height of the decoded coordinate space used by overlay points."
+            },
+            "encoded": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fps",
+                "frame_count",
+                "width",
+                "height"
+              ],
+              "properties": {
+                "fps": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1000
+                },
+                "frame_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10000000
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000
+                }
+              },
+              "description": "Container-probed source metadata bound to the submitted capture; decoded display geometry may differ after rotation."
+            }
+          }
+        },
+        "initialization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scramble"
+          ],
+          "properties": {
+            "scramble": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          }
+        },
+        "window": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000000
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000000
+            }
+          ],
+          "items": false
+        },
+        "warnings": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
+          }
+        },
+        "frames": {
+          "type": "object",
+          "maxProperties": 250000,
+          "propertyNames": {
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/frame"
+          }
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000
+          }
+        },
+        "trellis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "spans"
+          ],
+          "properties": {
+            "spans": {
+              "type": "array",
+              "maxItems": 100000,
+              "items": {
+                "$ref": "#/$defs/span"
+              }
+            },
+            "bridge": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "type": "string",
+                "pattern": "^[UDLRFB](?:'|2)?$"
+              }
+            }
+          }
+        },
+        "sequence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "moves",
+            "timing_basis"
+          ],
+          "properties": {
+            "moves": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "move",
+                  "frame"
+                ],
+                "properties": {
+                  "move": {
+                    "type": "string",
+                    "pattern": "^[UDLRFB](?:'|2)?$"
+                  },
+                  "frame": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  }
+                }
+              }
+            },
+            "timing_basis": {
+              "const": "canonical"
+            }
+          }
+        },
+        "reconstruction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "states",
+            "solved_reached"
+          ],
+          "properties": {
+            "states": {
+              "type": "array",
+              "maxItems": 2001,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "up",
+                  "right",
+                  "front",
+                  "down",
+                  "left",
+                  "back"
+                ],
+                "properties": {
+                  "up": {
+                    "$ref": "#/$defs/facelets"
+                  },
+                  "right": {
+                    "$ref": "#/$defs/facelets"
+                  },
+                  "front": {
+                    "$ref": "#/$defs/facelets"
+                  },
+                  "down": {
+                    "$ref": "#/$defs/facelets"
+                  },
+                  "left": {
+                    "$ref": "#/$defs/facelets"
+                  },
+                  "back": {
+                    "$ref": "#/$defs/facelets"
+                  }
+                }
+              }
+            },
+            "solved_reached": {
+              "type": "boolean"
+            },
+            "timeline": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Frame-ordered decoder checkpoints used only to scrub the reconstructed cube. The first checkpoint must be strictly after workstation.window[0] so the starting frame preserves the scramble. Moves with the same frame form one atomic checkpoint. Checkpoint frames are not per-move or physical-action timestamps.",
+              "required": [
+                "moves",
+                "timing_basis"
+              ],
+              "properties": {
+                "moves": {
+                  "type": "array",
+                  "description": "Reconstruction moves in replay order. Adjacent entries may share a frame and are applied together as one decoder checkpoint.",
+                  "maxItems": 2000,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "move",
+                      "frame"
+                    ],
+                    "properties": {
+                      "move": {
+                        "type": "string",
+                        "pattern": "^[UDLRFB](?:'|2)?$"
+                      },
+                      "frame": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 10000000
+                      }
+                    }
+                  }
+                },
+                "timing_basis": {
+                  "const": "decoder-checkpoint"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "facelets": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 32
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "endpoint": {
+            "properties": {
+              "solved_reached": {
+                "const": true
+              }
+            },
+            "required": [
+              "solved_reached"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "abstained"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "moves": {
+            "maxItems": 0
+          },
+          "endpoint": {
+            "properties": {
+              "solved_reached": {
+                "enum": [
+                  false,
+                  null
+                ]
+              }
+            },
+            "required": [
+              "solved_reached"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "workstation"
+        ],
+        "properties": {
+          "workstation": {
+            "required": [
+              "reconstruction"
+            ],
+            "properties": {
+              "reconstruction": {
+                "required": [
+                  "timeline"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

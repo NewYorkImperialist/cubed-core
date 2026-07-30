@@ -1,0 +1,16 @@
+Cubed Core
+
+Cubed Core repository-owned code is licensed under the GNU Affero General
+Public License, version 3 only. See LICENSE for the complete terms.
+
+This project uses third-party components that remain under their own licenses.
+The selected dependency register, version/source references, and copied-source
+notices are in THIRD_PARTY_NOTICES. Artifact and dependency boundaries are
+summarized in docs/LICENSING.md.
+
+This source-repository distribution contains tracked source, documentation, and
+the JSON demo fixtures identified in THIRD_PARTY_NOTICES. It contains no
+compiled application binary, container image, Python wheel, emitted browser
+bundle, model or checkpoint package, training dataset, or capture-media binary.
+Separately distributed artifacts are outside this source notice and remain
+governed by their exact cards, checksums, notices, and terms.

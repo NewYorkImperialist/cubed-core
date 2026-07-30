@@ -1,0 +1,166 @@
+/*
+ * Compute setup is a route card: quiet while closed, exact when opened.
+ * The square panels match the workbench's instrument language.
+ */
+
+.compute-target-control {
+  min-width: 0;
+}
+
+.compute-target-setup {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--surface-card);
+}
+
+.compute-target-setup > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.compute-target-setup > summary::-webkit-details-marker {
+  display: none;
+}
+
+.compute-target-setup > summary::after {
+  content: "+";
+  flex: none;
+  color: var(--blue);
+  font-family: var(--tool-mono, monospace);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.compute-target-setup[open] > summary::after {
+  content: "−";
+}
+
+.compute-target-setup > summary:hover {
+  background: var(--surface-hover);
+}
+
+.compute-target-setup > summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.compute-target-setup > summary span,
+.compute-target-setup > summary strong,
+.compute-target-setup > summary small {
+  display: block;
+}
+
+.compute-target-setup > summary strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.compute-target-setup > summary small {
+  margin-top: 2px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+}
+
+.compute-target-setup-body {
+  display: grid;
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+
+.compute-target-setup section {
+  min-width: 0;
+  padding: 13px 14px 14px;
+  background: var(--surface-solid);
+}
+
+.compute-target-setup header {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+}
+
+.compute-target-setup header span {
+  color: var(--text-soft);
+  font-family: var(--tool-mono, monospace);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.compute-target-setup header strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.compute-target-setup ol {
+  display: grid;
+  gap: 11px;
+  margin: 13px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: gpu-setup-step;
+}
+
+.compute-target-setup li {
+  position: relative;
+  min-width: 0;
+  padding-left: 28px;
+  color: var(--text-secondary);
+  counter-increment: gpu-setup-step;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.compute-target-setup li::before {
+  content: counter(gpu-setup-step, decimal-leading-zero);
+  position: absolute;
+  top: 1px;
+  left: 0;
+  color: var(--text-soft);
+  font-family: var(--tool-mono, monospace);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.compute-target-setup li > span {
+  display: block;
+}
+
+.compute-target-setup code {
+  display: block;
+  max-width: 100%;
+  margin-top: 5px;
+  overflow-x: auto;
+  color: var(--text-input);
+  font-family: var(--tool-mono, monospace);
+  font-size: 9px;
+  line-height: 1.55;
+  white-space: nowrap;
+}
+
+.compute-target-setup-footnote {
+  margin: 0;
+  padding: 11px 14px;
+  background: var(--surface-subtle);
+  color: var(--text-tertiary);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.compute-target-setup-footnote a {
+  color: var(--text-secondary);
+  text-underline-offset: 2px;
+}
+
+.compute-target-setup-footnote a:hover {
+  color: var(--ink);
+}

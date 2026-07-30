@@ -1,0 +1,548 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/clip-ble-ground-truth-v1.schema.json",
+  "title": "Cubed Core clip-local BLE ground truth",
+  "description": "Smart-cube teacher record for one solve, re-indexed onto a published clip's own frame numbering. Wall-clock capture time, private ingest identifiers, and absolute paths are intentionally absent. Cube model, relative timestamps, orientation quaternions, move quality, facelet states, and the scramble are intentionally present. This document is ground truth for one capture; it is not an accuracy measurement, a benchmark, or evidence about any other recording.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "tag",
+    "cube",
+    "clip",
+    "frame_index",
+    "solve",
+    "moves",
+    "canonical_moves",
+    "canonical_moves_note",
+    "states",
+    "states_encoding",
+    "orientations",
+    "orientations_note",
+    "verification",
+    "provenance",
+    "scrub",
+    "evidence_boundary"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/clip-ble-ground-truth-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "tag": {
+      "description": "Short capture tag. Not a session identifier and not resolvable to a private store.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "cube": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "link", "note"],
+      "properties": {
+        "model": {
+          "description": "Cube model as reported by the cube. Publishable only when the model is already disclosed for this capture; it is not a serial number or Bluetooth identifier.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "link": {
+          "enum": ["ble"]
+        },
+        "note": {
+          "$ref": "#/$defs/note"
+        }
+      }
+    },
+    "clip": {
+      "description": "Identity of the published clip these frame indices refer to.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filename",
+        "sha256",
+        "bytes",
+        "frame_count",
+        "fps",
+        "source_first_frame",
+        "source_last_frame"
+      ],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "source_first_frame": {
+          "$ref": "#/$defs/frameNumber"
+        },
+        "source_last_frame": {
+          "$ref": "#/$defs/frameNumber"
+        }
+      }
+    },
+    "frame_index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "origin_note",
+        "first_move_frame",
+        "last_move_frame",
+        "motion_frame_note"
+      ],
+      "properties": {
+        "basis": {
+          "const": "clip-local"
+        },
+        "origin_note": {
+          "$ref": "#/$defs/note"
+        },
+        "first_move_frame": {
+          "$ref": "#/$defs/frameNumber"
+        },
+        "last_move_frame": {
+          "$ref": "#/$defs/frameNumber"
+        },
+        "motion_frame_note": {
+          "$ref": "#/$defs/note"
+        }
+      }
+    },
+    "solve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scramble",
+        "move_count",
+        "mode",
+        "move_metric",
+        "start_state_source"
+      ],
+      "properties": {
+        "scramble": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "move_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "solve_ms": {
+          "description": "Duration only. An absolute wall-clock start time is deliberately absent.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000
+        },
+        "mode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "move_metric": {
+          "enum": ["quarter-turn", "half-turn"]
+        },
+        "start_state_source": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "time_to_frame": {
+      "description": "Least-squares time-to-frame line fitted on this document's own move anchors. It is a convenience for samples that carry no refined frame index, not an authoritative alignment.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "form",
+        "slope_frames_per_ms",
+        "intercept_frames",
+        "fitted_on",
+        "residual_max_frames",
+        "residual_rms_frames",
+        "note"
+      ],
+      "properties": {
+        "form": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "slope_frames_per_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "intercept_frames": {
+          "type": "number",
+          "minimum": -10000000,
+          "maximum": 10000000
+        },
+        "fitted_on": {
+          "$ref": "#/$defs/note"
+        },
+        "residual_max_frames": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "residual_rms_frames": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "note": {
+          "$ref": "#/$defs/note"
+        }
+      }
+    },
+    "moves": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "index",
+          "frame",
+          "move",
+          "quat",
+          "quality",
+          "motion_frame",
+          "ble_reported_state_index"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999
+          },
+          "frame": {
+            "description": "Clip-local onset frame. An estimate, not a hand-labelled frame.",
+            "$ref": "#/$defs/frameNumber"
+          },
+          "t_ms": {
+            "description": "Milliseconds since the start of the recorded session. Relative only.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 86400000
+          },
+          "move": {
+            "$ref": "#/$defs/moveToken"
+          },
+          "quat": {
+            "$ref": "#/$defs/quaternion"
+          },
+          "quality": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["tier", "snr", "neighbor_gap", "snapped"],
+                "properties": {
+                  "tier": {
+                    "enum": ["A", "B", "C"]
+                  },
+                  "snr": {
+                    "oneOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "neighbor_gap": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000000
+                  },
+                  "snapped": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "motion_frame": {
+            "description": "Independent motion-snapped clip-local frame where one exists, otherwise null. It may disagree with frame; neither series is authoritative over the other.",
+            "oneOf": [
+              {
+                "$ref": "#/$defs/frameNumber"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ble_reported_state_index": {
+            "description": "Index into states of the raw facelet snapshot the cube reported with this move event. The snapshot stream lags the move stream, so this is not always index or index + 1.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        }
+      }
+    },
+    "canonical_moves": {
+      "description": "Half-turn-metric tokens derived from moves[].move by collapsing adjacent same-face quarter turns. Derived, not separately measured.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/moveToken"
+      }
+    },
+    "canonical_moves_note": {
+      "$ref": "#/$defs/note"
+    },
+    "states": {
+      "description": "One more state than there are moves. Derived by replaying moves from the recorded start state.",
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 10001,
+      "items": {
+        "type": "string",
+        "pattern": "^[URFDLB]{54}$"
+      }
+    },
+    "states_encoding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layout",
+        "alphabet",
+        "semantics",
+        "ble_reported_state_index_note"
+      ],
+      "properties": {
+        "layout": {
+          "$ref": "#/$defs/note"
+        },
+        "alphabet": {
+          "$ref": "#/$defs/note"
+        },
+        "semantics": {
+          "$ref": "#/$defs/note"
+        },
+        "ble_reported_state_index_note": {
+          "$ref": "#/$defs/note"
+        }
+      }
+    },
+    "orientations": {
+      "description": "Cube-frame orientation samples. A quaternion carries no personal identifier.",
+      "type": "array",
+      "maxItems": 200000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["frame_approx", "quat"],
+        "properties": {
+          "t_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 86400000
+          },
+          "frame_approx": {
+            "description": "Clip-local frame from time_to_frame, or null when the sample falls outside the clip window. Approximate by construction.",
+            "oneOf": [
+              {
+                "$ref": "#/$defs/frameNumber"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quat": {
+            "$ref": "#/$defs/quaternion"
+          }
+        }
+      }
+    },
+    "orientations_note": {
+      "$ref": "#/$defs/note"
+    },
+    "verification": {
+      "description": "Internal consistency checks recomputed by the generator. A schema-valid document is one whose checks all passed. They are self-consistency checks, never an efficacy claim.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scramble_reproduces_start_state",
+        "moves_replay_to_solved",
+        "onsets_inside_clip_window",
+        "canonical_move_count",
+        "note"
+      ],
+      "properties": {
+        "scramble_reproduces_start_state": {
+          "const": true
+        },
+        "moves_replay_to_solved": {
+          "const": true
+        },
+        "onsets_inside_clip_window": {
+          "const": true
+        },
+        "canonical_move_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "note": {
+          "$ref": "#/$defs/note"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer", "producer_version", "sources", "sources_note"],
+      "properties": {
+        "producer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "producer_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "filename"],
+            "properties": {
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "filename": {
+                "description": "Bare filename only. A directory path from the producing machine must never appear here.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "pattern": "^[^/\\\\]+$"
+              }
+            }
+          }
+        },
+        "sources_note": {
+          "$ref": "#/$defs/note"
+        }
+      }
+    },
+    "scrub": {
+      "description": "Declaration of what was removed from the private record and what was kept on purpose.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["removed_fields", "retained_note", "checks"],
+      "properties": {
+        "removed_fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "reason"],
+            "properties": {
+              "field": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          }
+        },
+        "retained_note": {
+          "$ref": "#/$defs/note"
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "evidence_boundary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    }
+  },
+  "$defs": {
+    "note": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "frameNumber": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000000
+    },
+    "moveToken": {
+      "type": "string",
+      "pattern": "^[URFDLB](?:'|2)?$"
+    },
+    "quaternion": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "number",
+        "minimum": -1.001,
+        "maximum": 1.001
+      }
+    }
+  }
+}

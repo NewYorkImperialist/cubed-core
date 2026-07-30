@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img"
+     aria-label="Cubed Core">
+  <title>Cubed Core</title>
+  <rect width="1024" height="1024" rx="200" fill="#090E13"/>
+  <g>
+    <rect x="202" y="202" width="180" height="180" rx="34" fill="#194F5F"/>
+    <rect x="422" y="202" width="180" height="180" rx="34" fill="#38C7EB"/>
+    <rect x="642" y="202" width="180" height="180" rx="34" fill="#194F5F"/>
+    <rect x="202" y="422" width="180" height="180" rx="34" fill="#38C7EB"/>
+    <rect x="422" y="422" width="180" height="180" rx="34" fill="#DBF0F5"/>
+    <rect x="642" y="422" width="180" height="180" rx="34" fill="#38C7EB"/>
+    <rect x="202" y="642" width="180" height="180" rx="34" fill="#194F5F"/>
+    <rect x="422" y="642" width="180" height="180" rx="34" fill="#38C7EB"/>
+    <rect x="642" y="642" width="180" height="180" rx="34" fill="#194F5F"/>
+  </g>
+</svg>

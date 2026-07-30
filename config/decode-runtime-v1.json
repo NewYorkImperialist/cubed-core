@@ -1,0 +1,167 @@
+{
+  "schema": "cubed-core/decode-runtime",
+  "schema_version": 1,
+  "execution_enabled": true,
+  "status": "executable",
+  "measurement_claims_included": false,
+  "success_metric": "reach-ll-onset-with-correct-pre-ll-state",
+  "diagnostic_only_metrics": [
+    "full-sequence-accuracy",
+    "edit-distance"
+  ],
+  "teacher_policy": {
+    "camera_only_is_the_target": true,
+    "ble_is_training_or_evaluation_evidence_only": true,
+    "teacher_data_may_not_change_a_camera_only_run": true
+  },
+  "profiles": {
+    "canonical_eval_reference": {
+      "name": "move-gate-dgap-trustsoft-scrub-statefulom-robust",
+      "kind": "evaluation-reference-only",
+      "flags": [
+        "--om-pf-reads",
+        "--dfinal",
+        "5",
+        "--deep-count-bound",
+        "--om-rescue-deep",
+        "3",
+        "--om-rescue-topk",
+        "2",
+        "--ll-prior",
+        "3",
+        "--final-from-gt",
+        "--move-gate",
+        "--move-gate-allframes",
+        "--move-gate-margin",
+        "1",
+        "--align-gate",
+        "--align-gate-mode",
+        "or",
+        "--align-transition-sample",
+        "--om-pf-ball",
+        "dgap",
+        "--trust-soft",
+        "datasets/read_trust/trust_v1_numpy.npz",
+        "--misfit-thr",
+        "0",
+        "--scrub-decode",
+        "--scrub-om-stateful",
+        "--znorm-gates"
+      ],
+      "behavior_env": {
+        "CUBED_SCRUB_MICROREST_CANDIDACY": "1",
+        "CUBED_SCRUB_CLUSTER_FALLBACK": "1"
+      },
+      "behavior_env_stamp": "MICROREST=1,CLUSTERFB=1",
+      "cfg_hash_algorithm": "posix-cksum",
+      "cfg_hash_input": "--om-pf-reads --dfinal 5 --deep-count-bound --om-rescue-deep 3 --om-rescue-topk 2 --ll-prior 3 --final-from-gt --move-gate --move-gate-allframes --move-gate-margin 1 --align-gate --align-gate-mode or --align-transition-sample --om-pf-ball dgap --trust-soft datasets/read_trust/trust_v1_numpy.npz --misfit-thr 0 --scrub-decode --scrub-om-stateful --znorm-gates ENV:MICROREST=1,CLUSTERFB=1",
+      "cfg_hash": "3894620704",
+      "executable_for_local_capture": false,
+      "reason": "--final-from-gt is an evaluation-only terminal and may not be used for a camera-only result"
+    },
+    "local_camera_v1": {
+      "name": "cubed-core-local-camera-v1",
+      "kind": "camera-only",
+      "derived_from_profile": "canonical_eval_reference",
+      "derived_from_cfg_hash": "3894620704",
+      "derivation": "remove-evaluation-only-final-from-gt",
+      "evidence_status": "not-claimed",
+      "flags": [
+        "--om-pf-reads",
+        "--dfinal",
+        "5",
+        "--deep-count-bound",
+        "--om-rescue-deep",
+        "3",
+        "--om-rescue-topk",
+        "2",
+        "--ll-prior",
+        "3",
+        "--move-gate",
+        "--move-gate-allframes",
+        "--move-gate-margin",
+        "1",
+        "--align-gate",
+        "--align-gate-mode",
+        "or",
+        "--align-transition-sample",
+        "--om-pf-ball",
+        "dgap",
+        "--trust-soft",
+        "datasets/read_trust/trust_v1_numpy.npz",
+        "--misfit-thr",
+        "0",
+        "--scrub-decode",
+        "--scrub-om-stateful",
+        "--znorm-gates"
+      ],
+      "behavior_env": {
+        "CUBED_SCRUB_MICROREST_CANDIDACY": "1",
+        "CUBED_SCRUB_CLUSTER_FALLBACK": "1"
+      },
+      "behavior_env_stamp": "MICROREST=1,CLUSTERFB=1",
+      "cfg_hash_algorithm": "posix-cksum",
+      "cfg_hash_input": "--om-pf-reads --dfinal 5 --deep-count-bound --om-rescue-deep 3 --om-rescue-topk 2 --ll-prior 3 --move-gate --move-gate-allframes --move-gate-margin 1 --align-gate --align-gate-mode or --align-transition-sample --om-pf-ball dgap --trust-soft datasets/read_trust/trust_v1_numpy.npz --misfit-thr 0 --scrub-decode --scrub-om-stateful --znorm-gates ENV:MICROREST=1,CLUSTERFB=1",
+      "cfg_hash": "2429939321",
+      "executable_for_local_capture": true,
+      "reason": "canonical research pipeline in this repository; required runtime artifacts are separate release assets"
+    }
+  },
+  "runtime_requirements": [
+    {
+      "id": "decoder-engine",
+      "kind": "source-tree",
+      "path": "detect",
+      "publication_status": "available",
+      "required": true,
+      "purpose": "state-and-orientation trellis plus stateful scrub"
+    },
+    {
+      "id": "reads-provider",
+      "kind": "source-tree",
+      "path": "scripts/geo_read.py",
+      "publication_status": "available",
+      "required": true,
+      "purpose": "video frames to calibrated partial sticker observations"
+    },
+    {
+      "id": "event-provider",
+      "kind": "source-tree",
+      "path": "scripts/gen_motion_events.py",
+      "publication_status": "available",
+      "required": true,
+      "purpose": "camera-only motion event evidence"
+    },
+    {
+      "id": "pose-model",
+      "kind": "model",
+      "path": "workspace/release-assets/camera-tracker-v1-runtime/artifacts/face-pose.onnx",
+      "publication_status": "available",
+      "required": true,
+      "purpose": "cube face pose observations"
+    },
+    {
+      "id": "alignment-model",
+      "kind": "model",
+      "path": "workspace/release-assets/camera-tracker-v1-runtime/artifacts/alignment-classifier.onnx",
+      "publication_status": "available",
+      "required": true,
+      "purpose": "alignment evidence used by the move gate"
+    },
+    {
+      "id": "read-trust-model",
+      "kind": "model",
+      "path": "workspace/release-assets/trust_v1_numpy.npz",
+      "publication_status": "available",
+      "required": true,
+      "purpose": "soft per-cell read trust weights"
+    }
+  ],
+  "required_commands": [
+    "ffmpeg",
+    "ffprobe"
+  ],
+  "optional_commands": [
+    "nvidia-smi"
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/color-centroids-v1.schema.json",
+  "title": "Cubed Core imported color centroids",
+  "description": "Additive calibration format for imported captures: bare Lab centroids with no measured samples, geometry, or thresholds. Decode consumes these centroids exactly as it consumes color-calibration-v1 centroids. This format never satisfies a check that specifically requires measured samples.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "color_space",
+    "centroids",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/color-centroids-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "color_space": {
+      "const": "cielab"
+    },
+    "centroids": {
+      "$ref": "#/$defs/centroid_map"
+    },
+    "provenance": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "lab_vector": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 255
+        }
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "centroid_map": {
+      "type": "object",
+      "required": [
+        "white",
+        "green",
+        "red",
+        "blue",
+        "orange",
+        "yellow"
+      ],
+      "properties": {
+        "white": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "green": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "red": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "blue": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "orange": {
+          "$ref": "#/$defs/lab_vector"
+        },
+        "yellow": {
+          "$ref": "#/$defs/lab_vector"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

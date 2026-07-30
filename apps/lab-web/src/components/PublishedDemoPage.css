@@ -1,0 +1,819 @@
+.demo-page {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.demo-header {
+  grid-template-columns: minmax(0, 720px);
+  gap: 0;
+  margin-bottom: 2px;
+  padding-bottom: 18px;
+}
+
+.demo-header h1 {
+  font-size: clamp(38px, 4.2vw, 56px);
+  font-weight: 740;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-transform: none;
+}
+
+.demo-header .page-description {
+  max-width: 660px;
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.demo-loading {
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  font-family: var(--tool-mono);
+  font-size: 13px;
+}
+
+.demo-resource-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px 13px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  background: var(--surface-subtle);
+}
+
+.demo-resource-state > span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  font-family: var(--tool-mono);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.demo-resource-state strong,
+.demo-resource-state p {
+  margin: 0;
+}
+
+.demo-resource-state strong {
+  color: var(--ink);
+  font-family: var(--tool-mono);
+  font-size: 11px;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.demo-resource-state p {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.demo-resource-state-error {
+  border-left-color: var(--status-warning);
+}
+
+.demo-resource-state-error > span {
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+}
+
+.demo-resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 11px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.demo-resource-actions a {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.demo-stage,
+.demo-moves {
+  min-width: 0;
+  padding: 22px;
+  border: 0;
+  background: transparent;
+  /*
+   * Each panel sizes its own internals. In a two-column page the panel can be
+   * far narrower than the viewport, so a viewport media query is the wrong
+   * measure and was letting the transport overflow its own card.
+   */
+  container-type: inline-size;
+}
+
+/*
+ * The clip and the decoded output are the same observation, so on a wide
+ * viewport they share one row and stay co-visible while the video plays.
+ * Stacking them pushed the move timeline off screen, which removed the only
+ * thing the page exists to show.
+ */
+.demo-live {
+  display: grid;
+  gap: 0;
+  align-items: start;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-card);
+}
+
+@media (min-width: 1100px) {
+  .demo-live {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+
+  .demo-live > .demo-stage,
+  .demo-live > .demo-moves {
+    min-width: 0;
+  }
+
+  .demo-stage {
+    border-right: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 1099px) {
+  .demo-stage {
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* The badge cannot shrink, so the head wraps rather than pushing it past the
+ * panel edge in a narrow column. */
+.demo-stage-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.demo-stage-head > div {
+  min-width: 0;
+}
+
+.demo-stage-head h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-stretch: condensed;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+/*
+ * Video first, transport second. The range is a spatial index into the clip,
+ * so it always sits directly beneath the image instead of becoming a separate
+ * side panel on wide screens.
+ */
+.demo-viewer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.demo-frame {
+  --overlay-outline: var(--blue);
+  /*
+   * The frame box is fixed to the source aspect because the overlay canvas
+   * maps normalized quads onto it. Only its width may change.
+   */
+  --media-ink: #eaf1f5;
+  position: relative;
+  justify-self: center;
+  width: min(100%, 320px);
+  aspect-ratio: 1080 / 1920;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--media-letterbox);
+}
+
+.demo-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.demo-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/*
+ * The clip is a release asset, so on a public clone this state is what most
+ * visitors see. It gets a legible label on its own backdrop rather than dim
+ * text floating on the letterbox. The frame colours are fixed in both themes,
+ * so the ink is fixed too.
+ */
+.demo-frame-placeholder {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  padding: 8px 11px;
+  border-top: 1px solid color-mix(in srgb, var(--media-ink) 22%, transparent);
+  background: color-mix(in srgb, black 72%, transparent);
+  color: var(--media-ink);
+  font-family: var(--tool-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo-transport {
+  display: grid;
+  gap: 10px;
+  justify-self: center;
+  width: min(100%, 360px);
+  min-width: 0;
+}
+
+/*
+ * Nothing in the transport may push past the panel. The shared frame-transport
+ * grid declares a 150px minimum on its readout, which overflowed a narrow
+ * column, and its cell dividers do not match the product's buttons.
+ */
+.demo-transport > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.demo-transport-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.demo-transport-row .button {
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.demo-frame-readout {
+  flex: 1 0 100%;
+  margin: 2px 0 0;
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.demo-frame-readout strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-key-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin: 0;
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 11px;
+}
+
+.demo-key-hint kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+  color: var(--text-secondary);
+  font-family: var(--tool-mono);
+  font-size: 11px;
+}
+
+.demo-moves-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.demo-context-line {
+  min-width: 0;
+}
+
+.demo-video-note {
+  margin: 0;
+  padding: 11px 13px;
+  border-left: 3px solid var(--status-warning);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.demo-video-note code {
+  font-family: var(--tool-mono);
+  font-size: 12px;
+}
+
+.demo-video-note .text-button {
+  min-height: 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: inherit;
+  font-weight: 750;
+  vertical-align: baseline;
+}
+
+.demo-video-note a {
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.demo-moves-note {
+  margin-top: 14px;
+}
+
+.demo-step-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface-row);
+}
+
+.demo-step-controls p {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 11px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.demo-step-controls strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-moves-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 14px;
+}
+
+@container (min-width: 560px) {
+  .demo-moves-body {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+.demo-cube {
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+}
+
+/*
+ * The decoded moves as a strip over the clip, following the tracker
+ * dashboard: the series and the anchors are canvas, the cursor is a div. Its
+ * height is fixed, so 77 moves cannot grow the panel or push the clip out of
+ * view the way the old chip grid did.
+ */
+.demo-timeline {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  min-width: 0;
+}
+
+.demo-timeline-readout {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+}
+
+.demo-timeline-readout span {
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo-timeline-readout strong {
+  color: var(--ink);
+  font-family: var(--tool-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-timeline-readout code {
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid var(--blue);
+  background: color-mix(in srgb, var(--blue) 14%, var(--surface-solid));
+  color: var(--ink);
+  font-family: var(--tool-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/*
+ * Visual hierarchy, loudest last: the track establishes extent, the signal is
+ * a faint area, the 77 turn anchors are short low-contrast ticks, the current
+ * anchor is brighter than the other 76, and the playhead is the only strong
+ * mark. The yellow playhead and 4px box remain the strongest timeline marks.
+ */
+.demo-timeline-track {
+  --timeline-series: color-mix(in srgb, var(--blue) 32%, transparent);
+  --timeline-anchor: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+  --timeline-rule: color-mix(in srgb, var(--text-tertiary) 30%, transparent);
+  --lane-label-width: 74px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--lane-label-width) minmax(0, 1fr);
+  gap: 1px 0;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-subtle);
+}
+
+/* One or two words. These name the lanes, they do not explain them. */
+.demo-timeline-lane-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 9px;
+  border-right: 1px solid var(--line);
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* No opacity here. Fading --text-tertiary drops it under 4.5:1 in the light
+ * theme, which the demo page's axe check treats as a serious violation. */
+.demo-timeline-lane-label small {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.demo-timeline-lane {
+  position: relative;
+  min-width: 0;
+  cursor: crosshair;
+}
+
+.demo-timeline-canvas {
+  display: block;
+}
+
+.demo-timeline-anchor-current {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 18px;
+  margin-left: -0.5px;
+  background: var(--blue);
+  pointer-events: none;
+}
+
+/* Spans both lanes, so a turn and the alignment under it read as one moment. */
+.demo-timeline-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--yellow);
+  pointer-events: none;
+}
+
+/* Sampled color reads use local, fixed tracks. Tracker frames may carry zero
+ * through three faces, but that changing data must never resize the panel. */
+.demo-reads {
+  display: grid;
+  grid-template-rows: 20px 82px;
+  gap: 7px;
+  min-height: 109px;
+  margin-top: 16px;
+}
+
+.demo-reads h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-stretch: condensed;
+  font-weight: 720;
+  letter-spacing: -0.01em;
+}
+
+/* A slot with no detection on this frame. Same box, no fill. */
+.demo-read-empty {
+  background: color-mix(in srgb, var(--qr-surface) 10%, transparent);
+  border-style: dashed;
+}
+
+.demo-read-faces {
+  display: grid;
+  grid-template-columns: repeat(3, 70px);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.demo-read-face {
+  display: grid;
+  grid-template-rows: 16px 68px;
+  gap: 3px;
+  justify-items: center;
+  width: 70px;
+  height: 82px;
+}
+
+.demo-read-slot {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.demo-read-grid {
+  display: grid;
+  grid-template: repeat(3, 20px) / repeat(3, 20px);
+  gap: 2px;
+  width: 70px;
+  height: 70px;
+  padding: 3px;
+  border-radius: 4px;
+  background: var(--qr-ink);
+}
+
+.demo-read-cell {
+  width: 20px;
+  height: 20px;
+  border: 1px solid color-mix(in srgb, var(--qr-surface) 20%, transparent);
+  border-radius: 2px;
+}
+
+.demo-reference-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.demo-reference-links a {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line-dark);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.demo-reference-links a:hover {
+  border-bottom-color: var(--blue);
+  color: var(--blue);
+}
+
+.demo-artifact-id {
+  margin: 12px 0 0;
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.demo-artifact-id code {
+  color: var(--ink);
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/*
+ * The stacked layout hides the timeline behind a scroll, so the current move
+ * rides directly under the video instead. Hidden once the two-column layout
+ * puts the real timeline beside the clip.
+ */
+.demo-move-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-subtle);
+}
+
+.demo-move-strip-label {
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo-move-strip-count {
+  color: var(--ink);
+  font-family: var(--tool-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.demo-move-strip-tokens {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.demo-move-strip-token {
+  min-width: 32px;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+  color: var(--text-secondary);
+  font-family: var(--tool-mono);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.demo-move-strip-token-current {
+  border-color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 14%, var(--surface-solid));
+  color: var(--ink);
+}
+
+@media (min-width: 1100px) {
+  .demo-move-strip {
+    display: none;
+  }
+}
+
+/*
+ * The scramble tape keeps face turns visually distinct without adding another
+ * diagnostic panel.
+ */
+.demo-scramble {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.demo-scramble-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+}
+
+.demo-scramble-head h3 {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.demo-scramble-head span {
+  color: var(--text-tertiary);
+  font-family: var(--tool-mono);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.demo-scramble-tape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, var(--ruler-line) 1px, transparent 1px),
+    var(--surface-subtle);
+  background-size: 18px 100%;
+}
+
+.demo-scramble-move {
+  --move-color: var(--line-dark);
+  min-width: 33px;
+  padding: 7px 6px 6px;
+  border: 1px solid var(--line);
+  border-bottom: 3px solid var(--move-color);
+  background: color-mix(in srgb, var(--move-color) 10%, var(--surface-solid));
+  color: var(--ink);
+  font-family: var(--tool-mono);
+  font-size: 13px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.demo-scramble-face-r {
+  --move-color: var(--red);
+}
+
+.demo-scramble-face-l {
+  --move-color: var(--orange);
+}
+
+.demo-scramble-face-u {
+  --move-color: var(--line-dark);
+}
+
+.demo-scramble-face-d {
+  --move-color: var(--yellow);
+}
+
+.demo-scramble-face-f {
+  --move-color: var(--green);
+}
+
+.demo-scramble-face-b {
+  --move-color: var(--blue);
+}
+
+
+.demo-boundary-line {
+  flex: 1 1 420px;
+  margin: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.demo-boundary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+}
+
+@media (max-width: 600px) {
+  .demo-stage-head {
+    flex-direction: column;
+  }
+
+  .demo-resource-state {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .demo-resource-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

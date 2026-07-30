@@ -1,0 +1,419 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/public-corpus-manifest-v1.schema.json",
+  "title": "Cubed Core public corpus manifest",
+  "description": "A generic, rights-reviewed public capture corpus with one or more captures. This contract does not imply that Benchmark v0 is present.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "dataset_id",
+    "release_id",
+    "description",
+    "release_scope",
+    "evidence_scope",
+    "collection_license",
+    "capture_count",
+    "limitations",
+    "captures",
+    "benchmark_v0"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/public-corpus-manifest"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+    },
+    "release_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 1000
+    },
+    "release_scope": {
+      "const": "public-corpus"
+    },
+    "evidence_scope": {
+      "const": "corpus-not-benchmark-or-generalization-evidence"
+    },
+    "collection_license": {
+      "$ref": "#/$defs/collection_license"
+    },
+    "capture_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/public_text"
+      }
+    },
+    "captures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/capture"
+      }
+    },
+    "benchmark_v0": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/benchmark_v0"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "public_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "public_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^[A-Za-z0-9._/-]+$"
+    },
+    "fps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "codec",
+        "container",
+        "width",
+        "height",
+        "measured_fps",
+        "frame_count",
+        "audio_stream_count"
+      ],
+      "properties": {
+        "codec": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "container": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "measured_fps": {
+          "$ref": "#/$defs/fps"
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "audio_stream_count": {
+          "const": 0
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "role",
+        "path",
+        "bytes",
+        "sha256",
+        "media_type",
+        "public_license",
+        "attribution",
+        "privacy_reviewed",
+        "rights_reviewed",
+        "schema_file",
+        "media"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{2,99}$"
+        },
+        "role": {
+          "enum": [
+            "video",
+            "high_speed_original",
+            "video_derivation",
+            "scramble",
+            "calibration",
+            "camera_metadata",
+            "teacher_truth",
+            "tracker_labels",
+            "rights_record",
+            "ble_session",
+            "ble_session_app",
+            "imu",
+            "capture_manifest"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/public_path"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 100
+        },
+        "public_license": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+        },
+        "attribution": {
+          "$ref": "#/$defs/public_text"
+        },
+        "privacy_reviewed": {
+          "const": true
+        },
+        "rights_reviewed": {
+          "const": true
+        },
+        "schema_file": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*-v[0-9]+(?:-[a-z0-9][a-z0-9-]*)?\\.schema\\.json$"
+            }
+          ]
+        },
+        "media": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/media"
+            }
+          ]
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capture_id",
+        "source_status",
+        "provenance_status",
+        "split",
+        "artifacts"
+      ],
+      "properties": {
+        "capture_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "source_status": {
+          "const": "approved-for-public-redistribution"
+        },
+        "provenance_status": {
+          "const": "reviewed-source-and-authorship"
+        },
+        "split": {
+          "enum": [
+            "unassigned",
+            "train",
+            "validation",
+            "test"
+          ]
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 9,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "properties": {
+                  "role": {
+                    "const": "video"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "properties": {
+                  "role": {
+                    "const": "rights_record"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              },
+              "minContains": 1,
+              "maxContains": 1
+            }
+          ]
+        }
+      }
+    },
+    "collection_license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "license_id",
+        "attribution",
+        "scope",
+        "artifact_licenses_authoritative",
+        "exceptions"
+      ],
+      "properties": {
+        "license_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+        },
+        "attribution": {
+          "$ref": "#/$defs/public_text"
+        },
+        "scope": {
+          "const": "selection-and-arrangement-only"
+        },
+        "artifact_licenses_authoritative": {
+          "const": true
+        },
+        "exceptions": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "capture_id",
+              "role",
+              "public_license",
+              "reason"
+            ],
+            "properties": {
+              "capture_id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "public_license": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+              },
+              "reason": {
+                "$ref": "#/$defs/public_text"
+              }
+            }
+          }
+        }
+      }
+    },
+    "file_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "bytes",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/public_path"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "benchmark_v0": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public_manifest",
+        "splits_manifest",
+        "teacher_manifest"
+      ],
+      "properties": {
+        "public_manifest": {
+          "$ref": "#/$defs/file_binding"
+        },
+        "splits_manifest": {
+          "$ref": "#/$defs/file_binding"
+        },
+        "teacher_manifest": {
+          "$ref": "#/$defs/file_binding"
+        }
+      }
+    }
+  }
+}

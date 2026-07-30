@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/raw-cube-session-v2.schema.json",
+  "title": "Cubed Core raw cube session export",
+  "type": "object",
+  "required": [
+    "device",
+    "mode",
+    "moves",
+    "orientations",
+    "video_link_status",
+    "video_recording_id",
+    "zero_quat"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "capture_session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recording_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "video_recording_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "video_link_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "video_ingest_fail_reason": {
+      "type": "string"
+    },
+    "device": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "monotonic_start_ms",
+        "relative_timebase",
+        "move_event_time",
+        "orientation_event_time"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "monotonic_start_ms": {
+          "type": "number"
+        },
+        "relative_timebase": {
+          "const": "host_performance_now"
+        },
+        "move_event_time": {
+          "const": "event_local_timestamp_or_host_monotonic_fallback"
+        },
+        "orientation_event_time": {
+          "const": "host_monotonic_receive"
+        }
+      },
+      "additionalProperties": false
+    },
+    "scramble": {
+      "type": "string"
+    },
+    "scramble_recorded": {
+      "type": "string"
+    },
+    "start_state": {
+      "type": "array",
+      "minItems": 54,
+      "maxItems": 54,
+      "items": {
+        "type": "integer"
+      }
+    },
+    "start_state_source": {
+      "type": "string"
+    },
+    "solve_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "started_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "zero_quat": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/quaternion"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "moves": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/move"
+      }
+    },
+    "orientations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/orientation"
+      }
+    }
+  },
+  "$defs": {
+    "quaternion": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false
+    },
+    "move": {
+      "type": "object",
+      "required": [
+        "move",
+        "facelets",
+        "quat"
+      ],
+      "properties": {
+        "t_ms": {
+          "type": "number"
+        },
+        "move": {
+          "type": "string",
+          "minLength": 1
+        },
+        "facelets": {
+          "type": "string",
+          "minLength": 54,
+          "maxLength": 54
+        },
+        "quat": {
+          "$ref": "#/$defs/quaternion"
+        },
+        "event_local_timestamp_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cube_timestamp_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "serial": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_source": {
+          "enum": [
+            "event_local_timestamp",
+            "host_monotonic_fallback"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "orientation": {
+      "type": "object",
+      "required": [
+        "quat"
+      ],
+      "properties": {
+        "t_ms": {
+          "type": "number"
+        },
+        "quat": {
+          "$ref": "#/$defs/quaternion"
+        },
+        "clock_source": {
+          "const": "host_monotonic_receive"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

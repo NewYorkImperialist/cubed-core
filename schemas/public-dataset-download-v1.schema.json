@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/public-dataset-download-v1.schema.json",
+  "title": "Cubed Core public dataset download manifest",
+  "description": "Bootstrap metadata for downloading one immutable, rights-reviewed public dataset revision. This is not the Benchmark v0 content manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "dataset_id",
+    "description",
+    "publication_status",
+    "revision",
+    "source",
+    "artifacts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/public-dataset-download-v1"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "publication_status": {
+      "enum": [
+        "pending-rights-review",
+        "published",
+        "withdrawn"
+      ]
+    },
+    "revision": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/revision"
+        }
+      ]
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "base_url_template"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "hugging-face",
+                "direct-mirror"
+              ]
+            },
+            "base_url_template": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "\\{revision\\}"
+            }
+          }
+        }
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "publication_status": {
+            "const": "published"
+          }
+        },
+        "required": [
+          "publication_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "revision": {
+            "$ref": "#/$defs/revision"
+          },
+          "source": {
+            "type": "object"
+          },
+          "artifacts": {
+            "minItems": 7,
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": ".gitattributes"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "README.md"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "LICENSES/DATASET.md"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "dataset/manifest.json"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "metadata.jsonl"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "readiness-report.json"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "SHA256SUMS"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "else": {}
+    },
+    {
+      "if": {
+        "properties": {
+          "artifacts": {
+            "contains": {
+              "properties": {
+                "path": {
+                  "enum": [
+                    "public-inputs/manifest.json",
+                    "public-inputs/splits.json",
+                    "teacher/manifest.json"
+                  ]
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        },
+        "required": [
+          "artifacts"
+        ]
+      },
+      "then": {
+        "properties": {
+          "artifacts": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "public-inputs/manifest.json"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "public-inputs/splits.json"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "path": {
+                      "const": "teacher/manifest.json"
+                    }
+                  },
+                  "required": [
+                    "path"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "else": {}
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "hugging-face"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "revision": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "revision": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{6,127}$"
+    }
+  }
+}

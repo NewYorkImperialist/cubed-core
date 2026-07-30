@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/cubed-core-benchmark-v0-prediction.schema.json",
+  "title": "Cubed Core Benchmark v0 camera-only prediction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "benchmark_id",
+    "benchmark_version",
+    "capture_id",
+    "system",
+    "inference",
+    "result",
+    "component_metrics"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/benchmark-v0-prediction"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    },
+    "benchmark_version": {
+      "const": "0"
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "implementation_sha256",
+        "config_sha256",
+        "model_artifacts",
+        "run_receipt_sha256"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "implementation_sha256": {
+          "type": "string",
+          "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+        },
+        "model_artifacts": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "sha256"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "run_receipt_sha256": {
+          "type": "string",
+          "pattern": "^(?!0000000000000000000000000000000000000000000000000000000000000000$)[a-f0-9]{64}$"
+        }
+      }
+    },
+    "inference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lane",
+        "teacher_access",
+        "teacher_artifacts_visible",
+        "input_artifacts"
+      ],
+      "properties": {
+        "lane": {
+          "const": "camera-only"
+        },
+        "teacher_access": {
+          "const": "none-declared"
+        },
+        "teacher_artifacts_visible": {
+          "const": false
+        },
+        "input_artifacts": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "sha256"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "video",
+                  "scramble",
+                  "calibration",
+                  "camera_metadata"
+                ]
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "moves",
+        "runtime_ms",
+        "abstention_reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "abstained"
+          ]
+        },
+        "moves": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "type": "string",
+            "pattern": "^[UDLRFB](?:'|2)?$"
+          }
+        },
+        "runtime_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800000
+        },
+        "abstention_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "component_metrics": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value",
+          "unit",
+          "sample_count",
+          "scope"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$"
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000000
+          },
+          "scope": {
+            "const": "component-only-not-end-to-end"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "properties": {
+              "status": {
+                "const": "abstained"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "properties": {
+              "moves": {
+                "maxItems": 0
+              },
+              "abstention_reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "result": {
+            "properties": {
+              "abstention_reason": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

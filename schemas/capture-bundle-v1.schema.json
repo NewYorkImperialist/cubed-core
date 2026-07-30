@@ -1,0 +1,381 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/capture-bundle-v1.schema.json",
+  "title": "Cubed Core capture bundle",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "recording_id",
+    "capture_session_id",
+    "created_at",
+    "source",
+    "state",
+    "sealed_at",
+    "seal_purpose",
+    "video",
+    "camera",
+    "solve",
+    "calibration",
+    "teacher",
+    "sensors",
+    "provenance",
+    "readiness"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/capture-bundle"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "recording_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capture_id": {
+      "type": "string",
+      "minLength": 1,
+      "deprecated": true
+    },
+    "capture_session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Group captures from one collection session to prevent train/test leakage."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "enum": [
+        "browser",
+        "derived-240-to-120",
+        "external-camera",
+        "import",
+        "native-ios",
+        "qr-upload"
+      ]
+    },
+    "state": {
+      "enum": [
+        "incomplete",
+        "sealed"
+      ]
+    },
+    "sealed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "seal_purpose": {
+      "enum": [
+        "label",
+        "decode",
+        null
+      ]
+    },
+    "original_filename": {
+      "type": "string"
+    },
+    "video": {
+      "type": "object",
+      "required": [
+        "path",
+        "bytes",
+        "sha256",
+        "container",
+        "codec",
+        "encoded_width",
+        "encoded_height",
+        "actual_fps",
+        "frame_count",
+        "rotation_degrees",
+        "mirrored",
+        "time_origin"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "container": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "codec": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "encoded_width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "encoded_height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "configured_fps": {
+          "description": "The native iOS camera cadence selected before writer creation. Null for imports and older/non-native sources; video.actual_fps remains the authoritative saved-media measurement.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 60,
+          "maximum": 240
+        },
+        "actual_fps": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "frame_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "rotation_degrees": {
+          "enum": [
+            0,
+            90,
+            180,
+            270
+          ]
+        },
+        "mirrored": {
+          "type": "boolean"
+        },
+        "time_origin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "camera": {
+      "type": "object",
+      "required": [
+        "facing",
+        "device_model",
+        "camera_id",
+        "intrinsics"
+      ],
+      "properties": {
+        "facing": {
+          "enum": [
+            "front",
+            "back",
+            "external",
+            "unknown"
+          ]
+        },
+        "device_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "camera_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "intrinsics": {
+          "description": "Optional native 3x3 pinhole matrix on the raw sample-buffer axis at its declared reference dimensions, before display rotation. Scale to the encoded frame dimensions and apply video.rotation_degrees separately before using it on an upright tracker image.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "matrix",
+                "ref_w",
+                "ref_h"
+              ],
+              "properties": {
+                "matrix": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "number",
+                      "minimum": -10000000,
+                      "maximum": 10000000
+                    }
+                  }
+                },
+                "ref_w": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000
+                },
+                "ref_h": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100000
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "solve": {
+      "type": "object",
+      "required": [
+        "scramble",
+        "end_condition",
+        "start_frame",
+        "end_frame"
+      ],
+      "properties": {
+        "scramble": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "end_condition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "start_frame": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "end_frame": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "calibration": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "teacher": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "sensors": {
+      "type": "object"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "producer",
+        "producer_version",
+        "normalized_from_sha256"
+      ],
+      "properties": {
+        "producer": {
+          "type": "string"
+        },
+        "producer_version": {
+          "type": "string"
+        },
+        "normalized_from_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "derivation": {
+      "oneOf": [
+        {
+          "$ref": "capture-derivation-v1.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "probe": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "readiness": {
+      "type": "object",
+      "required": [
+        "can_label",
+        "can_decode",
+        "missing_for_decode",
+        "warnings"
+      ],
+      "properties": {
+        "can_label": {
+          "type": "boolean"
+        },
+        "can_decode": {
+          "type": "boolean"
+        },
+        "missing_for_decode": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

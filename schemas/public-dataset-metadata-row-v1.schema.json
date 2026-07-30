@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/public-dataset-metadata-row-v1.schema.json",
+  "title": "Cubed Core public dataset viewer metadata row",
+  "description": "One metadata.jsonl row. file_name is the Hugging Face video viewer binding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "attribution",
+    "capture_id",
+    "evidence_scope",
+    "file_name",
+    "fps_denominator",
+    "fps_numerator",
+    "frame_count",
+    "height",
+    "high_speed_file_name",
+    "public_license",
+    "split",
+    "teacher_truth_available",
+    "teacher_truth_file_name",
+    "tracker_labels_available",
+    "tracker_labels_file_name",
+    "width"
+  ],
+  "properties": {
+    "attribution": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "evidence_scope": {
+      "const": "corpus-not-benchmark-or-generalization-evidence"
+    },
+    "file_name": {
+      "$ref": "#/$defs/public_path"
+    },
+    "fps_denominator": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "fps_numerator": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "frame_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1080
+    },
+    "high_speed_file_name": {
+      "$ref": "#/$defs/optional_path"
+    },
+    "public_license": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{1,79}$"
+    },
+    "split": {
+      "enum": [
+        "unassigned",
+        "train",
+        "validation",
+        "test"
+      ]
+    },
+    "teacher_truth_available": {
+      "type": "boolean"
+    },
+    "teacher_truth_file_name": {
+      "$ref": "#/$defs/optional_path"
+    },
+    "tracker_labels_available": {
+      "type": "boolean"
+    },
+    "tracker_labels_file_name": {
+      "$ref": "#/$defs/optional_path"
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1080
+    }
+  },
+  "$defs": {
+    "public_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^[A-Za-z0-9._/-]+$"
+    },
+    "optional_path": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/public_path"
+        }
+      ]
+    }
+  }
+}

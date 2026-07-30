@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cubed-core.local/schemas/decode-job-request-v1.schema.json",
+  "title": "Cubed Core decode job request",
+  "description": "Server-generated input contract passed to an operator-configured decode runner. The video and starting scramble come from a decode-locked capture inside the server-owned workspace. Calibration is snapshotted per job and hash-bound here so replacing it for a later attempt cannot change an earlier run. The result this request asks for is reconstruction evidence with an independent replay check. It carries no accuracy claim and no reach-LL claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schema_version",
+    "job_id",
+    "capture_id",
+    "created_at",
+    "profile",
+    "config",
+    "inference_policy",
+    "inputs",
+    "runtime_assets",
+    "expected_output"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cubed-core/decode-job-request-v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "capture_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "profile": {
+      "const": "local_camera_v1"
+    },
+    "config": {
+      "description": "The decode profile identity taken from config/decode-runtime-v1.json at submission.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "cfg_hash",
+        "cfg_hash_algorithm"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cfg_hash": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "cfg_hash_algorithm": {
+          "const": "posix-cksum"
+        }
+      }
+    },
+    "inference_policy": {
+      "description": "Logical camera-only contract for this routed run. It does not assert operating-system isolation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "ground_truth",
+        "evaluation"
+      ],
+      "properties": {
+        "mode": {
+          "const": "camera-only"
+        },
+        "ground_truth": {
+          "const": "unavailable"
+        },
+        "evaluation": {
+          "const": "must-be-absent"
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "video",
+        "calibration",
+        "calibration_sha256",
+        "scramble"
+      ],
+      "properties": {
+        "video": {
+          "$ref": "#/$defs/localPath"
+        },
+        "calibration": {
+          "$ref": "#/$defs/localPath",
+          "description": "The job-private snapshot of the selected color calibration. The runner projects its centroids into the flat file the reads provider expects."
+        },
+        "calibration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the job-private calibration snapshot. The native runner verifies this before starting any heavy stage."
+        },
+        "scramble": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "The decode-locked capture's starting scramble in canonical face notation."
+        }
+      }
+    },
+    "runtime_assets": {
+      "description": "Model and trust artifacts declared by config/decode-runtime-v1.json, digested at submission so the runner and the server can both reject a mid-flight change.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Repository-relative path from the runtime manifest."
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "workstation_context": {
+      "description": "Optional server-verified portable media identity and non-blocking warnings for a native runner to embed in decode-result.json. It contains no local paths or teacher data.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "video",
+        "warnings"
+      ],
+      "properties": {
+        "video": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes",
+            "fps",
+            "frame_count",
+            "width",
+            "height"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fps": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000
+            },
+            "frame_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000000
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "schema_version"
+      ],
+      "properties": {
+        "schema": {
+          "const": "cubed-core/decode-result"
+        },
+        "schema_version": {
+          "const": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "localPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192
+    }
+  }
+}
