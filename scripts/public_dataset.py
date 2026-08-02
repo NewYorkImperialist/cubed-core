@@ -106,7 +106,9 @@ ROLE_SCHEMA_ALLOWLIST: dict[str, frozenset[str | None]] = {
             "cubed-core-benchmark-v0-rights.schema.json",
         }
     ),
-    "ble_session": frozenset({"raw-cube-session-v2.schema.json"}),
+    "ble_session": frozenset(
+        {"raw-cube-session-v2.schema.json", "raw-cube-session-v3.schema.json"}
+    ),
     "ble_session_app": frozenset({"raw-cube-session-v2.schema.json"}),
     "imu": frozenset({"raw-imu-v1.schema.json"}),
     "capture_manifest": frozenset({"raw-capture-manifest-v1.schema.json"}),
