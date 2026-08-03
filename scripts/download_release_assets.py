@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 REPOSITORY = "KingBobJoeIV/cubed-core"
-DEFAULT_RELEASE_TAG = "v1.0.0"
+DEFAULT_RELEASE_TAG = "v1.1.0"
 DEFAULT_OUTPUT_DIR = Path("workspace/release-assets")
 CHECKSUM_FILENAME = "SHA256SUMS"
 MAX_CHECKSUM_BYTES = 1024 * 1024
