@@ -81,14 +81,36 @@ class NativeDecodeRunnerError(ValueError):
         }
 
 
+# Every failure code this runner raises maps to exactly one process exit
+# status, so callers state the code once and this table supplies the status,
+# instead of repeating (and risking drift on) both at every call site.
+_EXIT_STATUS_BY_CODE: dict[str, int] = {
+    "invalid_arguments": 2,
+    "unsafe_path": 3,
+    "unreadable_input": 4,
+    "invalid_request": 4,
+    "invalid_calibration": 4,
+    "artifact_mismatch": 5,
+    "missing_artifact": 5,
+    "missing_component": 5,
+    "invalid_configuration": 6,
+    "nvdec_unavailable": 6,
+    "stage_failed": 7,
+    "invalid_workstation": 8,
+    "missing_result": 8,
+    "internal_error": 9,
+}
+
+
 def _error(
     code: str,
     message: str,
     *,
-    exit_status: int,
     details: Mapping[str, Any] | None = None,
 ) -> NativeDecodeRunnerError:
-    return NativeDecodeRunnerError(code, message, exit_status=exit_status, details=details)
+    return NativeDecodeRunnerError(
+        code, message, exit_status=_EXIT_STATUS_BY_CODE[code], details=details
+    )
 
 
 def emit_stage(token: str, *, current: int | None = None, total: int | None = None) -> None:
@@ -125,7 +147,6 @@ def _parse_cli(argv: Sequence[str]) -> tuple[Path, Path]:
         raise _error(
             "invalid_arguments",
             "expected exactly --request <path> and --output <path>",
-            exit_status=2,
         )
     values: dict[str, str] = {}
     for index in range(0, len(argv), 2):
@@ -135,30 +156,26 @@ def _parse_cli(argv: Sequence[str]) -> tuple[Path, Path]:
             raise _error(
                 "invalid_arguments",
                 "expected exactly --request <path> and --output <path>",
-                exit_status=2,
             )
         if not value or "\0" in value:
             raise _error(
                 "invalid_arguments",
                 f"{flag} must name a non-empty local path",
-                exit_status=2,
             )
         values[flag] = value
     request_path = Path(values["--request"])
     output_path = Path(values["--output"])
     if not request_path.is_absolute() or not output_path.is_absolute():
-        raise _error("unsafe_path", "request and output paths must be absolute", exit_status=3)
+        raise _error("unsafe_path", "request and output paths must be absolute")
     if output_path.parent != request_path.parent:
         raise _error(
             "unsafe_path",
             "the decode result must be written into the job directory",
-            exit_status=3,
         )
     if request_path.parent.is_symlink() or output_path.is_symlink():
         raise _error(
             "unsafe_path",
             "the decode job directory and its result target may not be symlinks",
-            exit_status=3,
         )
     return request_path, output_path
 
@@ -172,7 +189,7 @@ def _read_bounded_text(path: Path, *, description: str, maximum_bytes: int) -> s
             raise OSError(f"{description} is empty or exceeds its {maximum_bytes}-byte limit")
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        raise _error("unreadable_input", f"{description} is unavailable", exit_status=4) from exc
+        raise _error("unreadable_input", f"{description} is unavailable") from exc
 
 
 def _reject_nonfinite_json(value: str) -> None:
@@ -181,12 +198,12 @@ def _reject_nonfinite_json(value: str) -> None:
 
 def _existing_file(value: Any, *, field: str) -> Path:
     if not isinstance(value, str) or not value:
-        raise _error("invalid_request", f"{field} must be a path", exit_status=4)
+        raise _error("invalid_request", f"{field} must be a path")
     candidate = Path(value)
     if not candidate.is_absolute():
-        raise _error("unsafe_path", f"{field} must be an absolute path", exit_status=3)
+        raise _error("unsafe_path", f"{field} must be an absolute path")
     if candidate.is_symlink() or not candidate.is_file():
-        raise _error("unreadable_input", f"{field} is unavailable", exit_status=4)
+        raise _error("unreadable_input", f"{field} is unavailable")
     return candidate
 
 
@@ -204,7 +221,6 @@ def _identity_bound_file(
         raise _error(
             "invalid_request",
             f"{field} SHA-256 is invalid",
-            exit_status=4,
         )
     descriptor: int | None = None
     try:
@@ -227,7 +243,6 @@ def _identity_bound_file(
         raise _error(
             "unreadable_input",
             f"{field} is unavailable",
-            exit_status=4,
         ) from exc
     finally:
         if descriptor is not None:
@@ -237,13 +252,11 @@ def _identity_bound_file(
         raise _error(
             "artifact_mismatch",
             f"{field} changed while it was being verified",
-            exit_status=5,
         )
     if digest.hexdigest() != expected_sha256:
         raise _error(
             "artifact_mismatch",
             f"{field} does not match the request digest",
-            exit_status=5,
         )
     return path
 
@@ -257,7 +270,6 @@ def _load_workstation_context(value: Any) -> dict[str, Any] | None:
         raise _error(
             "invalid_request",
             "decode request workstation context is invalid",
-            exit_status=4,
         )
     video = value.get("video")
     required_video = {"sha256", "bytes", "fps", "frame_count", "width", "height"}
@@ -265,7 +277,6 @@ def _load_workstation_context(value: Any) -> dict[str, Any] | None:
         raise _error(
             "invalid_request",
             "decode request workstation video identity is invalid",
-            exit_status=4,
         )
     if (
         not isinstance(video["sha256"], str)
@@ -286,14 +297,12 @@ def _load_workstation_context(value: Any) -> dict[str, Any] | None:
         raise _error(
             "invalid_request",
             "decode request workstation video identity is invalid",
-            exit_status=4,
         )
     warnings = value.get("warnings")
     if not isinstance(warnings, list) or len(warnings) > 100:
         raise _error(
             "invalid_request",
             "decode request workstation warnings are invalid",
-            exit_status=4,
         )
     for warning in warnings:
         if (
@@ -309,7 +318,6 @@ def _load_workstation_context(value: Any) -> dict[str, Any] | None:
             raise _error(
                 "invalid_request",
                 "decode request workstation warnings are invalid",
-                exit_status=4,
             )
     return {
         "video": dict(video),
@@ -326,14 +334,13 @@ def _load_context(request_path: Path, output_path: Path) -> DecodeRunContext:
     try:
         request = json.loads(text, parse_constant=_reject_nonfinite_json)
     except ValueError as exc:
-        raise _error("invalid_request", "decode request is not valid JSON", exit_status=4) from exc
+        raise _error("invalid_request", "decode request is not valid JSON") from exc
     if not isinstance(request, dict):
-        raise _error("invalid_request", "decode request must be an object", exit_status=4)
+        raise _error("invalid_request", "decode request must be an object")
     if request.get("schema") != DECODE_REQUEST_SCHEMA or request.get("schema_version") != 1:
         raise _error(
             "invalid_request",
             f"decode request must declare {DECODE_REQUEST_SCHEMA} version 1",
-            exit_status=4,
         )
     job_id = request.get("job_id")
     capture_id = request.get("capture_id")
@@ -343,24 +350,23 @@ def _load_context(request_path: Path, output_path: Path) -> DecodeRunContext:
         or not isinstance(capture_id, str)
         or not _IDENTIFIER.fullmatch(capture_id)
     ):
-        raise _error("invalid_request", "decode request identity is invalid", exit_status=4)
+        raise _error("invalid_request", "decode request identity is invalid")
     if request_path.parent.name != job_id:
         raise _error(
             "unsafe_path",
             "the decode request must live in its own job directory",
-            exit_status=3,
         )
     inputs = request.get("inputs")
     if not isinstance(inputs, dict):
-        raise _error("invalid_request", "decode request inputs are invalid", exit_status=4)
+        raise _error("invalid_request", "decode request inputs are invalid")
     scramble = inputs.get("scramble")
     if not isinstance(scramble, str) or not scramble.strip():
-        raise _error("invalid_request", "decode request scramble is invalid", exit_status=4)
+        raise _error("invalid_request", "decode request scramble is invalid")
 
     runtime_assets: dict[str, dict[str, Any]] = {}
     declared = request.get("runtime_assets")
     if not isinstance(declared, list) or not declared:
-        raise _error("invalid_request", "decode request runtime assets are invalid", exit_status=4)
+        raise _error("invalid_request", "decode request runtime assets are invalid")
     for asset in declared:
         if (
             not isinstance(asset, dict)
@@ -373,7 +379,6 @@ def _load_context(request_path: Path, output_path: Path) -> DecodeRunContext:
             raise _error(
                 "invalid_request",
                 "decode request runtime assets are invalid",
-                exit_status=4,
             )
         runtime_assets[asset["id"]] = dict(asset)
 
@@ -404,7 +409,6 @@ def _repo_root() -> Path:
         raise _error(
             "missing_component",
             "the research decode pipeline is not present in this checkout",
-            exit_status=5,
             details={"repo_root": str(root)},
         )
     return root
@@ -420,7 +424,6 @@ def _verify_runtime_assets(context: DecodeRunContext, repo_root: Path) -> dict[s
             raise _error(
                 "missing_artifact",
                 f"decode runtime asset {asset_id} is unavailable",
-                exit_status=5,
                 details={"id": asset_id, "path": str(asset["path"])},
             )
         digest = hashlib.sha256()
@@ -431,7 +434,6 @@ def _verify_runtime_assets(context: DecodeRunContext, repo_root: Path) -> dict[s
             raise _error(
                 "artifact_mismatch",
                 f"decode runtime asset {asset_id} does not match the request digest",
-                exit_status=5,
                 details={"id": asset_id, "path": str(asset["path"])},
             )
         resolved[asset_id] = path
@@ -440,7 +442,6 @@ def _verify_runtime_assets(context: DecodeRunContext, repo_root: Path) -> dict[s
             raise _error(
                 "missing_artifact",
                 f"the decode request does not declare the required {required}",
-                exit_status=5,
             )
     return resolved
 
@@ -500,7 +501,6 @@ def _write_centroids(context: DecodeRunContext) -> Path:
         raise _error(
             "invalid_calibration",
             "capture calibration is not valid JSON",
-            exit_status=4,
         ) from exc
     if not isinstance(calibration, dict) or calibration.get("schema") not in (
         "cubed-core/color-calibration-v1",
@@ -510,11 +510,10 @@ def _write_centroids(context: DecodeRunContext) -> Path:
             "invalid_calibration",
             "capture calibration must be a cubed-core/color-calibration-v1 or "
             "cubed-core/color-centroids-v1 sidecar",
-            exit_status=4,
         )
     centroids = calibration.get("centroids")
     if not isinstance(centroids, dict):
-        raise _error("invalid_calibration", "capture calibration has no centroids", exit_status=4)
+        raise _error("invalid_calibration", "capture calibration has no centroids")
     projected: dict[str, list[float]] = {}
     for color in _COLOR_ORDER:
         value = centroids.get(color)
@@ -526,7 +525,6 @@ def _write_centroids(context: DecodeRunContext) -> Path:
             raise _error(
                 "invalid_calibration",
                 f"capture calibration centroid for {color} is invalid",
-                exit_status=4,
             )
         projected[color] = [float(item) for item in value]
     destination = context.job_dir / "centroids.json"
@@ -541,7 +539,6 @@ def _nvdec_policy() -> str:
         raise _error(
             "invalid_configuration",
             "CUBED_NVDEC must be auto, off, or require",
-            exit_status=6,
         )
     return policy
 
@@ -686,7 +683,6 @@ def _prepare_workstation_payload(
             raise _error(
                 "invalid_workstation",
                 "same-pass workstation frame evidence is invalid",
-                exit_status=8,
             )
         entry.setdefault("motion", None)
     deduplicated = {
@@ -754,6 +750,29 @@ def _base_environment(repo_root: Path) -> dict[str, str]:
     return environment
 
 
+def _invoke(
+    command: Sequence[str],
+    *,
+    environment: Mapping[str, str],
+    repo_root: Path,
+    runner: Any,
+) -> Any:
+    """Run one child process with the runner's fixed sandboxing shape.
+
+    Shared by ``_run`` and ``_nvdec_available``: both launch a subprocess in
+    ``repo_root`` with the resolved environment and a closed stdin, and differ
+    only in how they react to the outcome.
+    """
+
+    return runner(
+        list(command),
+        cwd=str(repo_root),
+        env=dict(environment),
+        stdin=subprocess.DEVNULL,
+        check=False,
+    )
+
+
 def _run(
     command: Sequence[str],
     *,
@@ -763,19 +782,12 @@ def _run(
     runner: Any = subprocess.run,
 ) -> None:
     print(f"[cubed-core:decode] {stage}: {' '.join(command)}", flush=True)
-    completed = runner(
-        list(command),
-        cwd=str(repo_root),
-        env=dict(environment),
-        stdin=subprocess.DEVNULL,
-        check=False,
-    )
+    completed = _invoke(command, environment=environment, repo_root=repo_root, runner=runner)
     return_code = getattr(completed, "returncode", 1)
     if return_code != 0:
         raise _error(
             "stage_failed",
             f"the {stage} stage exited with status {return_code}",
-            exit_status=7,
             details={"stage": stage, "return_code": return_code},
         )
 
@@ -794,13 +806,7 @@ def _nvdec_available(
         str(video),
     ]
     try:
-        completed = runner(
-            probe,
-            cwd=str(repo_root),
-            env=dict(environment),
-            stdin=subprocess.DEVNULL,
-            check=False,
-        )
+        completed = _invoke(probe, environment=environment, repo_root=repo_root, runner=runner)
     except OSError:
         return False
     return getattr(completed, "returncode", 1) == 0
@@ -863,7 +869,6 @@ def run(
             raise _error(
                 "nvdec_unavailable",
                 "NVDEC is required but failed its exact-video probe",
-                exit_status=6,
             )
         else:
             environment.pop("CUBED_GPU_DECODE", None)
@@ -884,7 +889,6 @@ def run(
             raise _error(
                 "stage_failed",
                 "the reads stage did not produce a reads artifact",
-                exit_status=7,
                 details={"stage": "reads"},
             )
 
@@ -967,7 +971,6 @@ def run(
             raise _error(
                 "missing_result",
                 "the decode stage did not write a decode result document",
-                exit_status=8,
             )
 
         # Keep the intermediate evidence beside the result so a job can be
@@ -1002,7 +1005,6 @@ def main(
         failure = _error(
             "internal_error",
             "decode runner failed before producing a result",
-            exit_status=9,
             details={
                 "exception_type": type(exc).__name__,
                 # Bounded rather than the full traceback: enough to tell CUDA

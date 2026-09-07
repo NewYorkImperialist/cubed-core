@@ -10,6 +10,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .public_ground_truth import (
+    SOLVED_FACELETS,
     GroundTruthDocumentIdentity,
     PublicGroundTruthError,
     validate_public_ground_truth_documents,
@@ -20,7 +21,6 @@ from .workspace import Workspace, WorkspaceError, normalize_scramble
 DOWNLOAD_RECEIPT_SCHEMA = "cubed-core/public-dataset-download-receipt-v3"
 CORPUS_MANIFEST_SCHEMA = "cubed-core/public-corpus-manifest"
 SCRAMBLE_SCHEMA = "cubed-core/public-corpus-scramble"
-SOLVED_FACELETS = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
 HASH_CHUNK_BYTES = 1024 * 1024
 
 
@@ -222,6 +222,17 @@ def _optional_artifact_for_role(
     return matching[0] if matching else None
 
 
+def _expect_capture_path(
+    capture_id: str,
+    actual: PurePosixPath,
+    filename: str,
+    *,
+    label: str,
+) -> None:
+    if actual != PurePosixPath("captures") / capture_id / filename:
+        raise PublicDatasetRegistrationError(f"capture {capture_id} {label} path is not canonical")
+
+
 def _cross_check_artifact(
     reference: dict[str, Any],
     artifacts: dict[PurePosixPath, _Artifact],
@@ -326,9 +337,7 @@ def _capture_rows(
     manifest: dict[str, Any],
     tags: dict[str, str],
 ) -> list[_Capture]:
-    dataset_id = _string(
-        manifest.get("dataset_id"), field="corpus manifest dataset_id", maximum=128
-    )
+    _string(manifest.get("dataset_id"), field="corpus manifest dataset_id", maximum=128)
     captures_value = _array(manifest.get("captures"), field="corpus manifest captures")
     if _positive_int(manifest.get("capture_count"), field="corpus manifest capture_count") != len(
         captures_value
@@ -379,23 +388,15 @@ def _capture_rows(
                 artifacts,
                 field=f"capture {capture_id} frame ground truth",
             )
-        if video_relative != PurePosixPath("captures") / capture_id / "video.mp4":
-            raise PublicDatasetRegistrationError(
-                f"capture {capture_id} video path is not canonical"
-            )
-        if scramble_relative != PurePosixPath("captures") / capture_id / "scramble.json":
-            raise PublicDatasetRegistrationError(
-                f"capture {capture_id} scramble path is not canonical"
-            )
-        if ble_relative != PurePosixPath("captures") / capture_id / "cube_session.json":
-            raise PublicDatasetRegistrationError(
-                f"capture {capture_id} BLE session path is not canonical"
-            )
-        if frame_ground_truth_relative is not None and frame_ground_truth_relative != (
-            PurePosixPath("captures") / capture_id / "clip_ble_ground_truth.json"
-        ):
-            raise PublicDatasetRegistrationError(
-                f"capture {capture_id} frame ground-truth path is not canonical"
+        _expect_capture_path(capture_id, video_relative, "video.mp4", label="video")
+        _expect_capture_path(capture_id, scramble_relative, "scramble.json", label="scramble")
+        _expect_capture_path(capture_id, ble_relative, "cube_session.json", label="BLE session")
+        if frame_ground_truth_relative is not None:
+            _expect_capture_path(
+                capture_id,
+                frame_ground_truth_relative,
+                "clip_ble_ground_truth.json",
+                label="frame ground-truth",
             )
 
         video_path = _safe_file(root, video_relative, field=f"capture {capture_id} video")
@@ -519,8 +520,6 @@ def _capture_rows(
         raise PublicDatasetRegistrationError(
             "derivation report references captures absent from the corpus manifest"
         )
-    if not dataset_id:
-        raise PublicDatasetRegistrationError("corpus dataset id is invalid")
     return rows
 
 
@@ -574,6 +573,33 @@ def _ground_truth_index(
             }
             for row in rows
         ],
+    }
+
+
+def _verified_video_kwargs(
+    row: _Capture,
+    *,
+    dataset_id: str,
+    revision: str,
+    notes: str,
+    warnings: tuple[str, ...],
+) -> dict[str, Any]:
+    return {
+        "capture_id": row.capture_id,
+        "original_filename": f"{row.tag}.mp4",
+        "capture_session_id": f"public-dataset:{dataset_id}@{revision}:{row.capture_id}",
+        "scramble": row.scramble,
+        "expected_bytes": row.video_bytes,
+        "expected_sha256": row.video_sha256,
+        "container": row.container,
+        "codec": row.codec,
+        "encoded_width": row.width,
+        "encoded_height": row.height,
+        "fps_numerator": row.fps_numerator,
+        "fps_denominator": row.fps_denominator,
+        "frame_count": row.frame_count,
+        "notes": notes,
+        "warnings": warnings,
     }
 
 
@@ -681,24 +707,17 @@ def register_downloaded_public_dataset(
     # A bad later row therefore cannot strand a partial registration.
     preflighted: list[tuple[_Capture, str, tuple[str, ...], bool]] = []
     for row, notes, warnings in registrations:
+        kwargs = _verified_video_kwargs(
+            row,
+            dataset_id=dataset_id,
+            revision=revision,
+            notes=notes,
+            warnings=warnings,
+        )
         try:
             _, would_create = workspace.register_verified_video(
                 row.video_path,
-                capture_id=row.capture_id,
-                original_filename=f"{row.tag}.mp4",
-                capture_session_id=(f"public-dataset:{dataset_id}@{revision}:{row.capture_id}"),
-                scramble=row.scramble,
-                expected_bytes=row.video_bytes,
-                expected_sha256=row.video_sha256,
-                container=row.container,
-                codec=row.codec,
-                encoded_width=row.width,
-                encoded_height=row.height,
-                fps_numerator=row.fps_numerator,
-                fps_denominator=row.fps_denominator,
-                frame_count=row.frame_count,
-                notes=notes,
-                warnings=warnings,
+                **kwargs,
                 _preflight=True,
             )
         except WorkspaceError as exc:
@@ -713,25 +732,15 @@ def register_downloaded_public_dataset(
         if not would_create:
             existing += 1
             continue
+        kwargs = _verified_video_kwargs(
+            row,
+            dataset_id=dataset_id,
+            revision=revision,
+            notes=notes,
+            warnings=warnings,
+        )
         try:
-            _, was_created = workspace.register_verified_video(
-                row.video_path,
-                capture_id=row.capture_id,
-                original_filename=f"{row.tag}.mp4",
-                capture_session_id=(f"public-dataset:{dataset_id}@{revision}:{row.capture_id}"),
-                scramble=row.scramble,
-                expected_bytes=row.video_bytes,
-                expected_sha256=row.video_sha256,
-                container=row.container,
-                codec=row.codec,
-                encoded_width=row.width,
-                encoded_height=row.height,
-                fps_numerator=row.fps_numerator,
-                fps_denominator=row.fps_denominator,
-                frame_count=row.frame_count,
-                notes=notes,
-                warnings=warnings,
-            )
+            _, was_created = workspace.register_verified_video(row.video_path, **kwargs)
         except WorkspaceError as exc:
             raise PublicDatasetRegistrationError(
                 f"could not register published capture {row.tag} ({row.capture_id}): {exc}"

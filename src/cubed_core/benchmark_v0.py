@@ -48,7 +48,6 @@ VIDEO_DERIVATION_SCHEMA = "capture-derivation-v1.schema.json"
 INPUT_ROLES = ("video", "scramble", "calibration", "camera_metadata")
 GROUP_KEYS = ("session_id", "solver_id", "cube_id", "camera_id", "setup_id")
 SPLITS = ("train", "validation", "test")
-STATE_HASH_ALGORITHM = "sha256-cubed-core-state-v1"
 MAX_BASELINE_VIDEO_BYTES = 100 * 1024 * 1024
 MAX_HIGH_SPEED_VIDEO_BYTES = 200 * 1024 * 1024
 _STATE_HASH_DOMAIN = b"cubed-core-state-v1\0"
@@ -56,6 +55,33 @@ _RIGHTS_PLACEHOLDER_TOKEN = re.compile(
     r"(?i)(?:^|[^a-z0-9])(?:todo|tbd|placeholder)(?:$|[^a-z0-9])"
 )
 _RIGHTS_EXAMPLE_IDENTIFIER = re.compile(r"(?i)(?:^|[^a-z0-9])example(?:$|[^a-z0-9])")
+_SENSITIVE_DEVICE_TEXT_MARKERS = (
+    "serial",
+    "udid",
+    "uuid",
+    "imei",
+    "bluetooth",
+    "bt address",
+    "mac address",
+    "device name",
+    "unique id",
+    "uniqueid",
+)
+_SENSITIVE_DEVICE_TEXT_UUID = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"
+)
+_SENSITIVE_DEVICE_TEXT_MAC = re.compile(r"\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b")
+_SENSITIVE_DEVICE_TEXT_LONG_IDENTIFIER = re.compile(
+    r"\b(?=[A-Za-z0-9:_-]{16,}\b)"
+    r"(?=[A-Za-z0-9:_-]*[A-Za-z])"
+    r"(?=[A-Za-z0-9:_-]*[0-9])"
+    r"[A-Za-z0-9:_-]+\b"
+)
+_SENSITIVE_DEVICE_TEXT_LONG_NUMERIC = re.compile(r"\b[0-9]{14,20}\b")
+_SENSITIVE_DEVICE_TEXT_PERSONAL_NAME = re.compile(
+    r"(?:'s|’s)\s+(?:iphone|phone|camera|device|ipad)\b",
+)
 
 _FACE_NORMAL = {
     "up": (0, 1, 0),
@@ -169,6 +195,18 @@ def _validate_schema(
     for part in first.absolute_path:
         location += f"[{part}]" if isinstance(part, int) else f".{part}"
     raise BenchmarkV0Error(f"{label}: schema violation at {location}: {first.message}")
+
+
+def _read_and_validate_schema(
+    path: Path,
+    schema_name: str,
+    *,
+    schema_dir: Path,
+    label: str,
+) -> dict[str, Any]:
+    document = _read_json(path, label=label)
+    _validate_schema(document, schema_name, schema_dir=schema_dir, label=label)
+    return document
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -419,9 +457,8 @@ def _validate_scramble(
     schema_dir: Path,
 ) -> dict[str, Any]:
     capture_id = capture["capture_id"]
-    document = _read_json(path, label=f"capture {capture_id} scramble")
-    _validate_schema(
-        document,
+    document = _read_and_validate_schema(
+        path,
         SCRAMBLE_SCHEMA,
         schema_dir=schema_dir,
         label=f"capture {capture_id} scramble",
@@ -442,9 +479,8 @@ def _validate_camera_metadata(
     schema_dir: Path,
 ) -> dict[str, Any]:
     capture_id = capture["capture_id"]
-    document = _read_json(path, label=f"capture {capture_id} camera metadata")
-    _validate_schema(
-        document,
+    document = _read_and_validate_schema(
+        path,
         CAMERA_METADATA_SCHEMA,
         schema_dir=schema_dir,
         label=f"capture {capture_id} camera metadata",
@@ -530,30 +566,6 @@ def _validate_camera_metadata(
 def _reject_sensitive_device_text(value: str, *, capture_id: str, field: str) -> None:
     normalized = value.strip()
     lowered = normalized.lower()
-    sensitive_markers = (
-        "serial",
-        "udid",
-        "uuid",
-        "imei",
-        "bluetooth",
-        "bt address",
-        "mac address",
-        "device name",
-        "unique id",
-        "uniqueid",
-    )
-    uuid_pattern = re.compile(
-        r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
-        r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"
-    )
-    mac_pattern = re.compile(r"\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b")
-    long_identifier = re.compile(
-        r"\b(?=[A-Za-z0-9:_-]{16,}\b)"
-        r"(?=[A-Za-z0-9:_-]*[A-Za-z])"
-        r"(?=[A-Za-z0-9:_-]*[0-9])"
-        r"[A-Za-z0-9:_-]+\b"
-    )
-    long_numeric_identifier = re.compile(r"\b[0-9]{14,20}\b")
     looks_like_path = (
         normalized.startswith(("/", "~/", "./", "../"))
         or re.match(r"^[A-Za-z]:\\", normalized) is not None
@@ -561,18 +573,15 @@ def _reject_sensitive_device_text(value: str, *, capture_id: str, field: str) ->
         or "/users/" in lowered
         or "\\users\\" in lowered
     )
-    personal_device_name = re.search(
-        r"(?:'s|’s)\s+(?:iphone|phone|camera|device|ipad)\b",
-        lowered,
-    )
+    personal_device_name = _SENSITIVE_DEVICE_TEXT_PERSONAL_NAME.search(lowered)
     if (
         "@" in normalized
         or looks_like_path
-        or any(marker in lowered for marker in sensitive_markers)
-        or uuid_pattern.search(normalized)
-        or mac_pattern.search(normalized)
-        or long_identifier.search(normalized)
-        or long_numeric_identifier.search(normalized)
+        or any(marker in lowered for marker in _SENSITIVE_DEVICE_TEXT_MARKERS)
+        or _SENSITIVE_DEVICE_TEXT_UUID.search(normalized)
+        or _SENSITIVE_DEVICE_TEXT_MAC.search(normalized)
+        or _SENSITIVE_DEVICE_TEXT_LONG_IDENTIFIER.search(normalized)
+        or _SENSITIVE_DEVICE_TEXT_LONG_NUMERIC.search(normalized)
         or personal_device_name
     ):
         raise BenchmarkV0Error(
@@ -677,9 +686,8 @@ def _validate_video_derivation(
     schema_dir: Path,
 ) -> dict[str, Any]:
     capture_id = capture["capture_id"]
-    document = _read_json(path, label=f"capture {capture_id} video derivation")
-    _validate_schema(
-        document,
+    document = _read_and_validate_schema(
+        path,
         VIDEO_DERIVATION_SCHEMA,
         schema_dir=schema_dir,
         label=f"capture {capture_id} video derivation",
@@ -771,9 +779,8 @@ def _validate_rights(
     schema_dir: Path,
 ) -> dict[str, Any]:
     capture_id = capture["capture_id"]
-    document = _read_json(path, label=f"capture {capture_id} rights record")
-    _validate_schema(
-        document,
+    document = _read_and_validate_schema(
+        path,
         RIGHTS_SCHEMA,
         schema_dir=schema_dir,
         label=f"capture {capture_id} rights record",
@@ -867,9 +874,8 @@ def _validate_tracker_labels(
     schema_dir: Path,
 ) -> dict[str, Any]:
     capture_id = capture["capture_id"]
-    document = _read_json(path, label=f"capture {capture_id} tracker labels")
-    _validate_schema(
-        document,
+    document = _read_and_validate_schema(
+        path,
         FRAME_ANNOTATIONS_SCHEMA,
         schema_dir=schema_dir,
         label=f"capture {capture_id} tracker labels",
@@ -892,9 +898,8 @@ def _validate_teacher(
     schema_dir: Path,
 ) -> dict[str, Any]:
     capture_id = capture["capture_id"]
-    document = _read_json(path, label=f"capture {capture_id} teacher truth")
-    _validate_schema(
-        document,
+    document = _read_and_validate_schema(
+        path,
         TEACHER_SCHEMA,
         schema_dir=schema_dir,
         label=f"capture {capture_id} teacher truth",
@@ -1297,12 +1302,11 @@ def validate_bundle(
 
 def _validate_prediction(
     document: Mapping[str, Any],
-    capture_data: Mapping[str, Any],
+    capture: Mapping[str, Any],
     manifest: Mapping[str, Any],
     *,
     schema_dir: Path,
 ) -> None:
-    capture = capture_data["manifest"]
     capture_id = capture["capture_id"]
     _validate_schema(
         document,
@@ -1538,7 +1542,7 @@ def evaluate_bundle(
         prediction = _read_json(path, label=f"capture {capture_id} prediction")
         _validate_prediction(
             prediction,
-            {"manifest": capture_by_id[capture_id]},
+            capture_by_id[capture_id],
             prediction_manifest,
             schema_dir=schema_root,
         )

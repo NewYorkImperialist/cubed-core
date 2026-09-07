@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import ipaddress
 import json
 import re
@@ -16,6 +15,8 @@ from .model_artifacts import (
     MODEL_ARTIFACT_MANIFEST_SCHEMA,
     MODEL_ARTIFACT_MAX_BYTES,
     TRACKER_REQUIRED_MODEL_ROLES,
+    _reject_nonfinite,
+    _sha256,
     load_and_verify_tracker_model_manifest,
 )
 
@@ -77,10 +78,6 @@ class TrackerPackageSpec:
 
 
 OnnxInspector = Callable[[Path, str], dict[str, Any]]
-
-
-def _reject_nonfinite(value: str) -> None:
-    raise ValueError(f"non-finite JSON number {value} is not allowed")
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -281,56 +278,11 @@ def _load_model_card(path: Path) -> bytes:
     return raw
 
 
-def load_tracker_package_spec(spec_path: Path) -> TrackerPackageSpec:
-    spec_path = spec_path.absolute()
-    value = _exact_object(
-        _read_json_object(
-            spec_path,
-            field="tracker model package spec",
-            maximum_bytes=TRACKER_MODEL_PACKAGE_SPEC_MAX_BYTES,
-        ),
-        field="tracker model package spec",
-        required={
-            "schema",
-            "schema_version",
-            "purpose",
-            "profile",
-            "onnx_input_trust",
-            "model_card",
-            "artifacts",
-        },
-    )
-    if (
-        value["schema"] != TRACKER_MODEL_PACKAGE_SPEC_SCHEMA
-        or type(value["schema_version"]) is not int
-        or value["schema_version"] != 1
-    ):
-        raise ModelPackageError(
-            "tracker model package spec must use "
-            "cubed-core/tracker-model-package-spec-v1 schema version 1"
-        )
-    purpose = _string(value["purpose"], field="tracker model package spec.purpose", maximum=40)
-    if purpose not in TRACKER_MODEL_PACKAGE_PURPOSES:
-        raise ModelPackageError("tracker model package spec.purpose is unsupported")
-    if value["onnx_input_trust"] != "operator-reviewed":
-        raise ModelPackageError(
-            "tracker model package spec.onnx_input_trust must be operator-reviewed; "
-            "ONNX Runtime is not a sandbox"
-        )
-    profile = _identifier(value["profile"], field="tracker model package spec.profile")
-    if profile != TRACKER_MODEL_PROFILE:
-        raise ModelPackageError(
-            f"tracker model package spec.profile must be {TRACKER_MODEL_PROFILE}"
-        )
-    base = spec_path.parent.resolve(strict=True)
-    model_card_path = _regular_input_file(
-        value["model_card"],
-        field="tracker model package spec.model_card",
-        base=base,
-        maximum_bytes=TRACKER_MODEL_CARD_MAX_BYTES,
-        suffix=".md",
-    )
-    raw_artifacts = value["artifacts"]
+def _parse_package_artifacts(
+    raw_artifacts: Any,
+    *,
+    base: Path,
+) -> list[TrackerPackageArtifact]:
     if not isinstance(raw_artifacts, list) or len(raw_artifacts) != len(
         TRACKER_REQUIRED_MODEL_ROLES
     ):
@@ -389,6 +341,59 @@ def load_tracker_package_spec(spec_path: Path) -> TrackerPackageSpec:
                 f"tracker model package spec is missing required role {missing[0]}"
             )
         raise ModelPackageError(f"tracker model package spec has unsupported role {extra[0]}")
+    return artifacts
+
+
+def load_tracker_package_spec(spec_path: Path) -> TrackerPackageSpec:
+    spec_path = spec_path.absolute()
+    value = _exact_object(
+        _read_json_object(
+            spec_path,
+            field="tracker model package spec",
+            maximum_bytes=TRACKER_MODEL_PACKAGE_SPEC_MAX_BYTES,
+        ),
+        field="tracker model package spec",
+        required={
+            "schema",
+            "schema_version",
+            "purpose",
+            "profile",
+            "onnx_input_trust",
+            "model_card",
+            "artifacts",
+        },
+    )
+    if (
+        value["schema"] != TRACKER_MODEL_PACKAGE_SPEC_SCHEMA
+        or type(value["schema_version"]) is not int
+        or value["schema_version"] != 1
+    ):
+        raise ModelPackageError(
+            "tracker model package spec must use "
+            "cubed-core/tracker-model-package-spec-v1 schema version 1"
+        )
+    purpose = _string(value["purpose"], field="tracker model package spec.purpose", maximum=40)
+    if purpose not in TRACKER_MODEL_PACKAGE_PURPOSES:
+        raise ModelPackageError("tracker model package spec.purpose is unsupported")
+    if value["onnx_input_trust"] != "operator-reviewed":
+        raise ModelPackageError(
+            "tracker model package spec.onnx_input_trust must be operator-reviewed; "
+            "ONNX Runtime is not a sandbox"
+        )
+    profile = _identifier(value["profile"], field="tracker model package spec.profile")
+    if profile != TRACKER_MODEL_PROFILE:
+        raise ModelPackageError(
+            f"tracker model package spec.profile must be {TRACKER_MODEL_PROFILE}"
+        )
+    base = spec_path.parent.resolve(strict=True)
+    model_card_path = _regular_input_file(
+        value["model_card"],
+        field="tracker model package spec.model_card",
+        base=base,
+        maximum_bytes=TRACKER_MODEL_CARD_MAX_BYTES,
+        suffix=".md",
+    )
+    artifacts = _parse_package_artifacts(value["artifacts"], base=base)
     if purpose == "publication-candidate":
         unapproved = sorted(
             artifact.role for artifact in artifacts if artifact.redistribution != "approved"
@@ -409,14 +414,6 @@ def load_tracker_package_spec(spec_path: Path) -> TrackerPackageSpec:
         model_card_path=model_card_path,
         artifacts=ordered,
     )
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        while chunk := handle.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _shape(value: Any, *, field: str) -> list[int | str | None]:
@@ -572,6 +569,55 @@ def _scan_package_text(path: Path) -> None:
             raise ModelPackageError(f"generated {name} contains a private local path")
 
 
+def _copy_and_audit_artifacts(
+    artifacts: tuple[TrackerPackageArtifact, ...],
+    *,
+    stage: Path,
+    inspector: OnnxInspector,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    manifest_artifacts: list[dict[str, Any]] = []
+    audit_artifacts: list[dict[str, Any]] = []
+    for artifact in artifacts:
+        source_sha = _sha256(artifact.source_path)
+        destination_relative = Path("artifacts") / f"{artifact.role}.onnx"
+        destination = stage / destination_relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(artifact.source_path, destination)
+        destination.chmod(0o644)
+        destination_sha = _sha256(destination)
+        if destination_sha != source_sha:
+            raise ModelPackageError(
+                f"{artifact.role} source changed while the package was being built"
+            )
+        byte_count = destination.stat().st_size
+        onnx_audit = inspector(destination, artifact.role)
+        manifest_artifacts.append(
+            {
+                "id": artifact.artifact_id,
+                "role": artifact.role,
+                "format": "onnx",
+                "path": destination_relative.as_posix(),
+                "bytes": byte_count,
+                "sha256": destination_sha,
+                "redistribution": artifact.redistribution,
+                "license": artifact.license,
+                "source": artifact.source,
+                "model_card": "MODEL_CARD.md",
+            }
+        )
+        audit_artifacts.append(
+            {
+                "id": artifact.artifact_id,
+                "role": artifact.role,
+                "path": destination_relative.as_posix(),
+                "bytes": byte_count,
+                "sha256": destination_sha,
+                "onnx_interface": onnx_audit,
+            }
+        )
+    return manifest_artifacts, audit_artifacts
+
+
 def package_tracker_models(
     spec_path: Path,
     output_dir: Path,
@@ -606,46 +652,9 @@ def package_tracker_models(
     try:
         card_bytes = _load_model_card(spec.model_card_path)
         _write_bytes(stage / "MODEL_CARD.md", card_bytes)
-        manifest_artifacts: list[dict[str, Any]] = []
-        audit_artifacts: list[dict[str, Any]] = []
-        for artifact in spec.artifacts:
-            source_sha = _sha256(artifact.source_path)
-            destination_relative = Path("artifacts") / f"{artifact.role}.onnx"
-            destination = stage / destination_relative
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(artifact.source_path, destination)
-            destination.chmod(0o644)
-            destination_sha = _sha256(destination)
-            if destination_sha != source_sha:
-                raise ModelPackageError(
-                    f"{artifact.role} source changed while the package was being built"
-                )
-            byte_count = destination.stat().st_size
-            onnx_audit = inspector(destination, artifact.role)
-            manifest_artifacts.append(
-                {
-                    "id": artifact.artifact_id,
-                    "role": artifact.role,
-                    "format": "onnx",
-                    "path": destination_relative.as_posix(),
-                    "bytes": byte_count,
-                    "sha256": destination_sha,
-                    "redistribution": artifact.redistribution,
-                    "license": artifact.license,
-                    "source": artifact.source,
-                    "model_card": "MODEL_CARD.md",
-                }
-            )
-            audit_artifacts.append(
-                {
-                    "id": artifact.artifact_id,
-                    "role": artifact.role,
-                    "path": destination_relative.as_posix(),
-                    "bytes": byte_count,
-                    "sha256": destination_sha,
-                    "onnx_interface": onnx_audit,
-                }
-            )
+        manifest_artifacts, audit_artifacts = _copy_and_audit_artifacts(
+            spec.artifacts, stage=stage, inspector=inspector
+        )
         manifest = {
             "schema": MODEL_ARTIFACT_MANIFEST_SCHEMA,
             "schema_version": 1,

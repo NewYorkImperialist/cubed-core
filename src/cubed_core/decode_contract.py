@@ -67,6 +67,12 @@ def _require_object(value: Any, *, name: str) -> dict[str, Any]:
     return value
 
 
+def _dict_or_empty(value: Any) -> dict[str, Any]:
+    """Treat a missing or malformed optional object field as absent."""
+
+    return value if isinstance(value, dict) else {}
+
+
 def _profile_hash_input(profile: dict[str, Any]) -> str:
     flags = profile.get("flags")
     env_stamp = profile.get("behavior_env_stamp")
@@ -356,8 +362,7 @@ def build_decode_preflight(
             "capture must be sealed with seal_purpose=decode before execution",
         )
 
-    solve = capture.get("solve")
-    solve = solve if isinstance(solve, dict) else {}
+    solve = _dict_or_empty(capture.get("solve"))
     scramble = solve.get("scramble")
     scramble_tokens = scramble.split() if isinstance(scramble, str) else []
     if scramble_tokens and all(_MOVE_TOKEN.fullmatch(token) for token in scramble_tokens):
@@ -365,8 +370,7 @@ def build_decode_preflight(
     else:
         _check(checks, "capture.scramble", "fail", "a canonical starting scramble is required")
 
-    video = capture.get("video")
-    video = video if isinstance(video, dict) else {}
+    video = _dict_or_empty(capture.get("video"))
     fps = video.get("actual_fps")
     if (
         isinstance(fps, bool)

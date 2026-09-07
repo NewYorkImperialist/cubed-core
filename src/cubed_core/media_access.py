@@ -46,5 +46,6 @@ class MediaTicketRegistry:
             return ticket
 
     def _purge(self, now: float) -> None:
-        for token in [token for token, ticket in self._items.items() if ticket.expires_at <= now]:
+        expired = [token for token, ticket in self._items.items() if ticket.expires_at <= now]
+        for token in expired:
             self._items.pop(token, None)

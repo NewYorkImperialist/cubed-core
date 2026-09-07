@@ -226,6 +226,128 @@ def normalize_face(
     return normalized
 
 
+def _normalize_polygon_entry(
+    polygon_value: Any,
+    *,
+    field: str,
+    width: int,
+    height: int,
+) -> dict[str, Any]:
+    polygon = _object(
+        polygon_value,
+        field=field,
+        required={"id", "points"},
+        allowed={"id", "points"},
+    )
+    return {
+        "id": _string(polygon["id"], field=f"{field}.id", minimum=1, maximum=100),
+        "points": [
+            _point(
+                point,
+                field=f"{field}.points[{point_index}]",
+                width=width,
+                height=height,
+            )
+            for point_index, point in enumerate(
+                _array(polygon["points"], field=f"{field}.points", minimum=3, maximum=128)
+            )
+        ],
+    }
+
+
+def _normalize_frame_entry(
+    frame_value: Any,
+    *,
+    field: str,
+    width: int,
+    height: int,
+    frame_count: int | None,
+    seen_frames: set[int],
+) -> dict[str, Any]:
+    frame = _object(
+        frame_value,
+        field=field,
+        required={"frame_index", "time_seconds", "aligned_label", "faces"},
+        allowed={
+            "frame_index",
+            "time_seconds",
+            "aligned_label",
+            "faces",
+            "polygons",
+            "wireframe",
+        },
+    )
+    frame_index = _integer(
+        frame["frame_index"],
+        field=f"{field}.frame_index",
+        minimum=0,
+        maximum=10_000_000,
+    )
+    if frame_index in seen_frames:
+        raise FrameAnnotationError(f"annotation document.frames repeats frame_index {frame_index}")
+    seen_frames.add(frame_index)
+    if frame_count is not None and frame_index >= frame_count:
+        raise FrameAnnotationError(f"{field}.frame_index is outside source.frame_count")
+    aligned_label = frame["aligned_label"]
+    if aligned_label not in {"aligned", "unaligned", None}:
+        raise FrameAnnotationError(f"{field}.aligned_label must be aligned, unaligned, or null")
+    normalized_frame: dict[str, Any] = {
+        "frame_index": frame_index,
+        "time_seconds": _number(
+            frame["time_seconds"],
+            field=f"{field}.time_seconds",
+            minimum=0,
+            maximum=1_000_000,
+        ),
+        "aligned_label": aligned_label,
+        "faces": [
+            normalize_face(
+                face,
+                field=f"{field}.faces[{face_index}]",
+                width=width,
+                height=height,
+            )
+            for face_index, face in enumerate(
+                _array(frame["faces"], field=f"{field}.faces", maximum=64)
+            )
+        ],
+    }
+    if "polygons" in frame:
+        normalized_frame["polygons"] = [
+            _normalize_polygon_entry(
+                polygon_value,
+                field=f"{field}.polygons[{polygon_index}]",
+                width=width,
+                height=height,
+            )
+            for polygon_index, polygon_value in enumerate(
+                _array(frame["polygons"], field=f"{field}.polygons", maximum=64)
+            )
+        ]
+    if "wireframe" in frame:
+        normalized_frame["wireframe"] = (
+            None
+            if frame["wireframe"] is None
+            else [
+                _point(
+                    point,
+                    field=f"{field}.wireframe[{point_index}]",
+                    width=width,
+                    height=height,
+                )
+                for point_index, point in enumerate(
+                    _array(
+                        frame["wireframe"],
+                        field=f"{field}.wireframe",
+                        maximum=8,
+                        exact=8,
+                    )
+                )
+            ]
+        )
+    return normalized_frame
+
+
 def normalize_frame_annotations(
     value: Any,
     *,
@@ -363,121 +485,18 @@ def normalize_frame_annotations(
         field="annotation document.frames",
         maximum=200_000,
     )
-    normalized_frames: list[dict[str, Any]] = []
     seen_frames: set[int] = set()
-    for frame_position, frame_value in enumerate(frames):
-        field = f"annotation document.frames[{frame_position}]"
-        frame = _object(
+    normalized_frames = [
+        _normalize_frame_entry(
             frame_value,
-            field=field,
-            required={"frame_index", "time_seconds", "aligned_label", "faces"},
-            allowed={
-                "frame_index",
-                "time_seconds",
-                "aligned_label",
-                "faces",
-                "polygons",
-                "wireframe",
-            },
+            field=f"annotation document.frames[{frame_position}]",
+            width=width,
+            height=height,
+            frame_count=frame_count,
+            seen_frames=seen_frames,
         )
-        frame_index = _integer(
-            frame["frame_index"],
-            field=f"{field}.frame_index",
-            minimum=0,
-            maximum=10_000_000,
-        )
-        if frame_index in seen_frames:
-            raise FrameAnnotationError(
-                f"annotation document.frames repeats frame_index {frame_index}"
-            )
-        seen_frames.add(frame_index)
-        if frame_count is not None and frame_index >= frame_count:
-            raise FrameAnnotationError(f"{field}.frame_index is outside source.frame_count")
-        aligned_label = frame["aligned_label"]
-        if aligned_label not in {"aligned", "unaligned", None}:
-            raise FrameAnnotationError(f"{field}.aligned_label must be aligned, unaligned, or null")
-        normalized_frame: dict[str, Any] = {
-            "frame_index": frame_index,
-            "time_seconds": _number(
-                frame["time_seconds"],
-                field=f"{field}.time_seconds",
-                minimum=0,
-                maximum=1_000_000,
-            ),
-            "aligned_label": aligned_label,
-            "faces": [
-                normalize_face(
-                    face,
-                    field=f"{field}.faces[{face_index}]",
-                    width=width,
-                    height=height,
-                )
-                for face_index, face in enumerate(
-                    _array(frame["faces"], field=f"{field}.faces", maximum=64)
-                )
-            ],
-        }
-        if "polygons" in frame:
-            polygons: list[dict[str, Any]] = []
-            for polygon_index, polygon_value in enumerate(
-                _array(frame["polygons"], field=f"{field}.polygons", maximum=64)
-            ):
-                polygon_field = f"{field}.polygons[{polygon_index}]"
-                polygon = _object(
-                    polygon_value,
-                    field=polygon_field,
-                    required={"id", "points"},
-                    allowed={"id", "points"},
-                )
-                polygons.append(
-                    {
-                        "id": _string(
-                            polygon["id"],
-                            field=f"{polygon_field}.id",
-                            minimum=1,
-                            maximum=100,
-                        ),
-                        "points": [
-                            _point(
-                                point,
-                                field=f"{polygon_field}.points[{point_index}]",
-                                width=width,
-                                height=height,
-                            )
-                            for point_index, point in enumerate(
-                                _array(
-                                    polygon["points"],
-                                    field=f"{polygon_field}.points",
-                                    minimum=3,
-                                    maximum=128,
-                                )
-                            )
-                        ],
-                    }
-                )
-            normalized_frame["polygons"] = polygons
-        if "wireframe" in frame:
-            normalized_frame["wireframe"] = (
-                None
-                if frame["wireframe"] is None
-                else [
-                    _point(
-                        point,
-                        field=f"{field}.wireframe[{point_index}]",
-                        width=width,
-                        height=height,
-                    )
-                    for point_index, point in enumerate(
-                        _array(
-                            frame["wireframe"],
-                            field=f"{field}.wireframe",
-                            maximum=8,
-                            exact=8,
-                        )
-                    )
-                ]
-            )
-        normalized_frames.append(normalized_frame)
+        for frame_position, frame_value in enumerate(frames)
+    ]
 
     return {
         "schema": FRAME_ANNOTATIONS_SCHEMA,
@@ -531,6 +550,11 @@ def _yolo_line(face: dict[str, Any], width: int, height: int) -> str:
             ]
         )
     return " ".join(fields)
+
+
+def _split_and_stem(frame_index: int, validation_frames: set[int]) -> tuple[str, str]:
+    split = "val" if frame_index in validation_frames else "train"
+    return split, f"frame_{frame_index:08d}"
 
 
 def _coco_polygon(
@@ -594,8 +618,7 @@ def build_yolo_pose_archive(
     coco_annotations: list[dict[str, Any]] = []
     annotation_id = 1
     for image_id, frame in enumerate(frames, start=1):
-        split = "val" if frame["frame_index"] in validation_frames else "train"
-        stem = f"frame_{frame['frame_index']:08d}"
+        split, stem = _split_and_stem(frame["frame_index"], validation_frames)
         coco_images.append(
             {
                 "id": image_id,
@@ -689,8 +712,7 @@ def build_yolo_pose_archive(
             (json.dumps(coco, indent=2, sort_keys=True) + "\n").encode(),
         )
         for frame in frames:
-            stem = f"frame_{frame['frame_index']:08d}"
-            split = "val" if frame["frame_index"] in validation_frames else "train"
+            split, stem = _split_and_stem(frame["frame_index"], validation_frames)
             jpeg = frame_extractor(video_path, frame["frame_index"])
             labels = "\n".join(_yolo_line(face, width, height) for face in frame["faces"])
             _zip_write(archive, f"images/{split}/{stem}.jpg", jpeg)

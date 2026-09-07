@@ -169,6 +169,31 @@ def _validate_labeled_geometry(points: list[list[float]]) -> None:
         raise LabelAssistError("labeled_corners must define a nondegenerate face")
 
 
+def _normalize_pins(pins_value: Any, *, width: int, height: int) -> list[dict[str, Any]]:
+    if not isinstance(pins_value, list) or len(pins_value) > 8:
+        raise LabelAssistError("pins must be an array with at most 8 items")
+    pins: list[dict[str, Any]] = []
+    seen_vertices: set[int] = set()
+    for index, pin in enumerate(pins_value):
+        if not isinstance(pin, dict) or set(pin) != {"xy", "vertex"}:
+            raise LabelAssistError(f"pins[{index}] must contain only xy and vertex")
+        vertex = pin["vertex"]
+        if type(vertex) is not int or not 0 <= vertex <= 7:
+            raise LabelAssistError(f"pins[{index}].vertex must be an integer from 0 to 7")
+        if vertex in seen_vertices:
+            raise LabelAssistError(f"pins repeats cube vertex {vertex}")
+        seen_vertices.add(vertex)
+        xy = _points(
+            [pin["xy"]],
+            field=f"pins[{index}].xy",
+            width=width,
+            height=height,
+            lengths={1},
+        )[0]
+        pins.append({"xy": xy, "vertex": vertex})
+    return pins
+
+
 def extrapolate_request(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise LabelAssistError("request body must be an object")
@@ -193,28 +218,7 @@ def extrapolate_request(value: Any) -> dict[str, Any]:
         width=width,
         height=height,
     )
-    pins_value = value.get("pins", [])
-    if not isinstance(pins_value, list) or len(pins_value) > 8:
-        raise LabelAssistError("pins must be an array with at most 8 items")
-    pins: list[dict[str, Any]] = []
-    seen_vertices: set[int] = set()
-    for index, pin in enumerate(pins_value):
-        if not isinstance(pin, dict) or set(pin) != {"xy", "vertex"}:
-            raise LabelAssistError(f"pins[{index}] must contain only xy and vertex")
-        vertex = pin["vertex"]
-        if type(vertex) is not int or not 0 <= vertex <= 7:
-            raise LabelAssistError(f"pins[{index}].vertex must be an integer from 0 to 7")
-        if vertex in seen_vertices:
-            raise LabelAssistError(f"pins repeats cube vertex {vertex}")
-        seen_vertices.add(vertex)
-        xy = _points(
-            [pin["xy"]],
-            field=f"pins[{index}].xy",
-            width=width,
-            height=height,
-            lengths={1},
-        )[0]
-        pins.append({"xy": xy, "vertex": vertex})
+    pins = _normalize_pins(value.get("pins", []), width=width, height=height)
     shrink = _number(
         value.get("shrink", 1.0),
         field="shrink",

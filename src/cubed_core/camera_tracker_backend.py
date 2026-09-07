@@ -30,15 +30,6 @@ class CameraTrackerBackendError(ValueError):
         self.details = dict(details or {})
 
 
-def _backend_error(
-    code: str,
-    message: str,
-    *,
-    details: Mapping[str, Any] | None = None,
-) -> CameraTrackerBackendError:
-    return CameraTrackerBackendError(code, message, details=details)
-
-
 class CameraTrackerBackend:
     """Registry-verified ONNX inference used by the Label workbench."""
 
@@ -54,14 +45,14 @@ class CameraTrackerBackend:
         intra_op_threads: int | None = None,
     ) -> CameraTrackerBackend:
         if not isinstance(manifest, VerifiedModelManifest):
-            raise _backend_error(
+            raise CameraTrackerBackendError(
                 "backend_model_error",
                 "the tracker model manifest is not verified",
             )
         roles = manifest.by_role()
         missing = sorted(set(TRACKER_REQUIRED_MODEL_ROLES) - roles.keys())
         if missing:
-            raise _backend_error(
+            raise CameraTrackerBackendError(
                 "missing_artifact",
                 "required tracker model artifacts are not configured",
                 details={"required_roles": missing},
@@ -83,13 +74,13 @@ class CameraTrackerBackend:
                 ),
             )
         except (OnnxRuntimeUnavailable, VisionRuntimeUnavailable) as exc:
-            raise _backend_error(
+            raise CameraTrackerBackendError(
                 "backend_runtime_unavailable",
                 "the local camera tracker runtime is unavailable",
                 details={"exception_type": type(exc).__name__},
             ) from exc
         except OnnxModelError as exc:
-            raise _backend_error(
+            raise CameraTrackerBackendError(
                 "backend_model_error",
                 "the verified camera tracker model could not be used",
                 details={

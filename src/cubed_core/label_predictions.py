@@ -169,7 +169,6 @@ def _external_prediction_capability(settings: Settings) -> dict[str, Any]:
 def prediction_capability(settings: Settings) -> dict[str, Any]:
     """Prefer the already-configured native tracker models for Label inference."""
 
-    native = None
     readiness = build_camera_tracker_readiness(settings)
     native = {
         "enabled": readiness.enabled,
@@ -188,7 +187,7 @@ def prediction_capability(settings: Settings) -> dict[str, Any]:
     external = _external_prediction_capability(settings)
     if external["enabled"] or settings.label_predict_command:
         return external
-    return native or external
+    return native
 
 
 def _number(
@@ -287,6 +286,93 @@ def _reject_nonfinite(value: str) -> None:
     raise ValueError(f"non-finite JSON number {value} is not allowed")
 
 
+def _normalize_prediction_face(
+    face_value: Any,
+    *,
+    field: str,
+    frame_index: int,
+    face_position: int,
+    width: int,
+    height: int,
+) -> dict[str, Any]:
+    if not isinstance(face_value, dict):
+        raise LabelPredictionError(f"{field} must be an object")
+    allowed = {"corners", "visible", "confidence"}
+    if set(face_value) - allowed or "corners" not in face_value:
+        raise LabelPredictionError(f"{field} must contain corners and optional visible/confidence")
+    corners = face_value["corners"]
+    if not isinstance(corners, list) or len(corners) != 4:
+        raise LabelPredictionError(f"{field}.corners must contain four points")
+    visible = face_value.get("visible", [True, True, True, True])
+    if (
+        not isinstance(visible, list)
+        or len(visible) != 4
+        or any(type(item) is not bool for item in visible)
+    ):
+        raise LabelPredictionError(f"{field}.visible must contain four booleans")
+    normalized_face = {
+        "id": f"model-{frame_index}-{face_position}",
+        "corners": [
+            _point(
+                point,
+                field=f"{field}.corners[{corner_position}]",
+                width=width,
+                height=height,
+            )
+            for corner_position, point in enumerate(corners)
+        ],
+        "visible": visible,
+        "origin": "model",
+    }
+    if "confidence" in face_value:
+        normalized_face["confidence"] = _number(
+            face_value["confidence"],
+            field=f"{field}.confidence",
+            minimum=0,
+            maximum=1,
+        )
+    return normalized_face
+
+
+def _normalize_prediction_frame(
+    frame_value: Any,
+    *,
+    field: str,
+    width: int,
+    height: int,
+    requested: set[int] | None,
+    seen: set[int],
+) -> dict[str, Any]:
+    if not isinstance(frame_value, dict) or set(frame_value) != {"frame_index", "faces"}:
+        raise LabelPredictionError(f"{field} must contain only frame_index and faces")
+    frame_index = _integer(
+        frame_value["frame_index"],
+        field=f"{field}.frame_index",
+        minimum=0,
+        maximum=10_000_000,
+    )
+    if frame_index in seen:
+        raise LabelPredictionError(f"predictor output repeats frame {frame_index}")
+    if requested is not None and frame_index not in requested:
+        raise LabelPredictionError(f"predictor returned unrequested frame {frame_index}")
+    seen.add(frame_index)
+    faces = frame_value["faces"]
+    if not isinstance(faces, list) or len(faces) > 64:
+        raise LabelPredictionError(f"{field}.faces must contain at most 64 faces")
+    normalized_faces = [
+        _normalize_prediction_face(
+            face_value,
+            field=f"{field}.faces[{face_position}]",
+            frame_index=frame_index,
+            face_position=face_position,
+            width=width,
+            height=height,
+        )
+        for face_position, face_value in enumerate(faces)
+    ]
+    return {"frame_index": frame_index, "faces": normalized_faces}
+
+
 def _normalize_output(
     value: Any,
     *,
@@ -303,68 +389,17 @@ def _normalize_output(
         raise LabelPredictionError("predictor output frames must be a bounded array")
     requested = None if requested_frames is None else set(requested_frames)
     seen: set[int] = set()
-    normalized_frames: list[dict[str, Any]] = []
-    for frame_position, frame_value in enumerate(frames):
-        field = f"predictor output.frames[{frame_position}]"
-        if not isinstance(frame_value, dict) or set(frame_value) != {"frame_index", "faces"}:
-            raise LabelPredictionError(f"{field} must contain only frame_index and faces")
-        frame_index = _integer(
-            frame_value["frame_index"],
-            field=f"{field}.frame_index",
-            minimum=0,
-            maximum=10_000_000,
+    normalized_frames = [
+        _normalize_prediction_frame(
+            frame_value,
+            field=f"predictor output.frames[{frame_position}]",
+            width=width,
+            height=height,
+            requested=requested,
+            seen=seen,
         )
-        if frame_index in seen:
-            raise LabelPredictionError(f"predictor output repeats frame {frame_index}")
-        if requested is not None and frame_index not in requested:
-            raise LabelPredictionError(f"predictor returned unrequested frame {frame_index}")
-        seen.add(frame_index)
-        faces = frame_value["faces"]
-        if not isinstance(faces, list) or len(faces) > 64:
-            raise LabelPredictionError(f"{field}.faces must contain at most 64 faces")
-        normalized_faces: list[dict[str, Any]] = []
-        for face_position, face_value in enumerate(faces):
-            face_field = f"{field}.faces[{face_position}]"
-            if not isinstance(face_value, dict):
-                raise LabelPredictionError(f"{face_field} must be an object")
-            allowed = {"corners", "visible", "confidence"}
-            if set(face_value) - allowed or "corners" not in face_value:
-                raise LabelPredictionError(
-                    f"{face_field} must contain corners and optional visible/confidence"
-                )
-            corners = face_value["corners"]
-            if not isinstance(corners, list) or len(corners) != 4:
-                raise LabelPredictionError(f"{face_field}.corners must contain four points")
-            visible = face_value.get("visible", [True, True, True, True])
-            if (
-                not isinstance(visible, list)
-                or len(visible) != 4
-                or any(type(item) is not bool for item in visible)
-            ):
-                raise LabelPredictionError(f"{face_field}.visible must contain four booleans")
-            normalized_face = {
-                "id": f"model-{frame_index}-{face_position}",
-                "corners": [
-                    _point(
-                        point,
-                        field=f"{face_field}.corners[{corner_position}]",
-                        width=width,
-                        height=height,
-                    )
-                    for corner_position, point in enumerate(corners)
-                ],
-                "visible": visible,
-                "origin": "model",
-            }
-            if "confidence" in face_value:
-                normalized_face["confidence"] = _number(
-                    face_value["confidence"],
-                    field=f"{face_field}.confidence",
-                    minimum=0,
-                    maximum=1,
-                )
-            normalized_faces.append(normalized_face)
-        normalized_frames.append({"frame_index": frame_index, "faces": normalized_faces})
+        for frame_position, frame_value in enumerate(frames)
+    ]
     return {
         "schema": LABEL_PREDICTION_SCHEMA,
         "frames": sorted(normalized_frames, key=lambda frame: frame["frame_index"]),

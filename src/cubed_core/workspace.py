@@ -51,6 +51,15 @@ class WorkspaceError(ValueError):
 CALIBRATION_DISPLAY_NAME_MAX_CHARS = 200
 _USE_DIRECTORY_FDS = os.name != "nt"
 _WINDOWS_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+_FACE_MOVE_PATTERN = re.compile(r"[UDLRFB](?:'|2)?")
+_OUT_OF_RANGE_FPS_WARNING = (
+    "Measured cadence is outside the recommended 110–121 fps profile. "
+    "Decode is allowed, but timing and reconstruction may be less reliable."
+)
+_LOW_RESOLUTION_WARNING = (
+    "Encoded short edge is below the recommended 1080-pixel profile. "
+    "Decode is allowed, but face reads may be less reliable."
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -460,7 +469,7 @@ def normalize_scramble(value: str) -> str | None:
     tokens = value.split()
     if not tokens:
         return None
-    if any(not re.fullmatch(r"[UDLRFB](?:'|2)?", token) for token in tokens):
+    if any(not _FACE_MOVE_PATTERN.fullmatch(token) for token in tokens):
         raise WorkspaceError("scramble must contain canonical face moves")
     return " ".join(tokens)
 
@@ -680,10 +689,8 @@ def validate_ble_session(value: Any) -> None:
             or isinstance(move["sequence"], bool)
             or move["sequence"] < 0
             or not isinstance(move["move"], str)
-            or not re.fullmatch(r"[UDLRFB](?:'|2)?", move["move"])
-            or not isinstance(move["serial"], int)
-            or isinstance(move["serial"], bool)
-            or not 0 <= move["serial"] <= 255
+            or not _FACE_MOVE_PATTERN.fullmatch(move["move"])
+            or not _is_valid_event_serial(move["serial"])
         ):
             raise WorkspaceError(f"BLE teacher move {index} is invalid")
         if move["sequence"] in seen_sequences:
@@ -703,27 +710,15 @@ def validate_ble_session(value: Any) -> None:
             nullable=True,
         )
         facelets = move.get("facelets")
-        if facelets is not None and (
-            not isinstance(facelets, str)
-            or len(facelets) != 54
-            or any(facelets.count(symbol) != 9 for symbol in "URFDLB")
-        ):
+        if facelets is not None and not _has_valid_facelets(facelets):
             raise WorkspaceError(f"BLE teacher move {index} facelets are invalid")
-        source = move["clock_source"]
-        local_timestamp = move["event_local_timestamp_ms"]
-        if source == "event_local_timestamp":
-            local = _finite_number(
-                local_timestamp,
-                field=f"moves[{index}].event_local_timestamp_ms",
-                nonnegative=True,
-            )
-            if abs(move_time - max(0.0, local - anchor)) > 1.0:
-                raise WorkspaceError(f"BLE teacher move {index} clock receipt disagrees")
-        elif source == "host_monotonic_fallback":
-            if local_timestamp is not None:
-                raise WorkspaceError(f"BLE teacher move {index} fallback clock is invalid")
-        else:
-            raise WorkspaceError(f"BLE teacher move {index} clock source is invalid")
+        _validate_move_clock_source(
+            move,
+            index=index,
+            move_time=move_time,
+            anchor=anchor,
+            label="BLE teacher",
+        )
         _finite_number(
             move["event_host_timestamp_ms"],
             field=f"moves[{index}].event_host_timestamp_ms",
@@ -790,14 +785,10 @@ def validate_ble_session(value: Any) -> None:
             raise WorkspaceError("BLE teacher state times must be monotonic")
         previous_state_time = event_time
         facelets = state.get("facelets")
-        if (
-            not isinstance(facelets, str)
-            or len(facelets) != 54
-            or any(facelets.count(symbol) != 9 for symbol in "URFDLB")
-        ):
+        if not _has_valid_facelets(facelets):
             raise WorkspaceError(f"BLE teacher state {index} facelets are invalid")
         serial = state.get("serial")
-        if not isinstance(serial, int) or isinstance(serial, bool) or not 0 <= serial <= 255:
+        if not _is_valid_event_serial(serial):
             raise WorkspaceError(f"BLE teacher state {index} serial is invalid")
         _finite_number(
             state.get("event_host_timestamp_ms"),
@@ -885,6 +876,53 @@ def _validate_quaternion(value: Any, *, field: str, nullable: bool) -> None:
         raise WorkspaceError(f"{field} must be a unit quaternion")
 
 
+def _has_valid_facelets(value: Any) -> bool:
+    """Return whether ``value`` is a 54-character URFDLB facelet string."""
+
+    return (
+        isinstance(value, str)
+        and len(value) == 54
+        and all(value.count(symbol) == 9 for symbol in "URFDLB")
+    )
+
+
+def _is_valid_event_serial(value: Any) -> bool:
+    """Return whether ``value`` is a valid one-byte BLE event serial."""
+
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 255
+
+
+def _validate_move_clock_source(
+    move: dict[str, Any],
+    *,
+    index: int,
+    move_time: float,
+    anchor: float,
+    label: str,
+) -> None:
+    """Validate one move's ``clock_source``/``event_local_timestamp_ms`` pairing.
+
+    Shared by the BLE teacher session and CubeSession v2 schemas, which apply
+    the same clock contract under different error-message prefixes.
+    """
+
+    source = move.get("clock_source")
+    local_timestamp = move.get("event_local_timestamp_ms")
+    if source == "event_local_timestamp":
+        local = _finite_number(
+            local_timestamp,
+            field=f"moves[{index}].event_local_timestamp_ms",
+            nonnegative=True,
+        )
+        if abs(move_time - max(0.0, local - anchor)) > 1.0:
+            raise WorkspaceError(f"{label} move {index} clock receipt disagrees")
+    elif source == "host_monotonic_fallback":
+        if local_timestamp is not None:
+            raise WorkspaceError(f"{label} move {index} fallback clock is invalid")
+    else:
+        raise WorkspaceError(f"{label} move {index} clock source is invalid")
+
+
 def _validate_cube_session_v2(value: Any) -> None:
     if not isinstance(value, dict) or value.get("schema_version") != 2:
         raise WorkspaceError("teacher session must declare CubeSession schema version 2")
@@ -948,12 +986,10 @@ def _validate_cube_session_v2(value: Any) -> None:
         if move_time < previous_move_time:
             raise WorkspaceError("CubeSession v2 move times must be monotonic")
         previous_move_time = move_time
-        if not isinstance(move.get("move"), str) or not re.fullmatch(
-            r"[UDLRFB](?:'|2)?", move["move"]
-        ):
+        if not isinstance(move.get("move"), str) or not _FACE_MOVE_PATTERN.fullmatch(move["move"]):
             raise WorkspaceError(f"CubeSession v2 move {index} is not canonical")
         serial = move.get("serial")
-        if not isinstance(serial, int) or isinstance(serial, bool) or not 0 <= serial <= 255:
+        if not _is_valid_event_serial(serial):
             raise WorkspaceError(f"CubeSession v2 move {index} serial is invalid")
         _validate_quaternion(
             move.get("quat"),
@@ -961,27 +997,15 @@ def _validate_cube_session_v2(value: Any) -> None:
             nullable=True,
         )
         facelets = move.get("facelets")
-        if facelets is not None and (
-            not isinstance(facelets, str)
-            or len(facelets) != 54
-            or any(facelets.count(symbol) != 9 for symbol in "URFDLB")
-        ):
+        if facelets is not None and not _has_valid_facelets(facelets):
             raise WorkspaceError(f"CubeSession v2 move {index} facelets are invalid")
-        source = move.get("clock_source")
-        local_timestamp = move.get("event_local_timestamp_ms")
-        if source == "event_local_timestamp":
-            local = _finite_number(
-                local_timestamp,
-                field=f"moves[{index}].event_local_timestamp_ms",
-                nonnegative=True,
-            )
-            if abs(move_time - max(0.0, local - anchor)) > 1.0:
-                raise WorkspaceError(f"CubeSession v2 move {index} clock receipt disagrees")
-        elif source == "host_monotonic_fallback":
-            if local_timestamp is not None:
-                raise WorkspaceError(f"CubeSession v2 move {index} fallback clock is invalid")
-        else:
-            raise WorkspaceError(f"CubeSession v2 move {index} clock source is invalid")
+        _validate_move_clock_source(
+            move,
+            index=index,
+            move_time=move_time,
+            anchor=anchor,
+            label="CubeSession v2",
+        )
         cube_timestamp = move.get("cube_timestamp_ms")
         if cube_timestamp is not None:
             _finite_number(
@@ -1259,13 +1283,13 @@ class Workspace:
                 and math.isfinite(float(actual_fps))
                 and float(actual_fps) > 0
             )
-            fps_missing = (
-                ["video.actual_fps"]
-                if not fps_is_known
-                else ["video.derive-240-to-120"]
-                if is_native_240_capture_frame_rate(actual_fps)
-                else []
-            )
+            if not fps_is_known:
+                fps_missing = ["video.actual_fps"]
+            elif is_native_240_capture_frame_rate(actual_fps):
+                fps_missing = ["video.derive-240-to-120"]
+            else:
+                fps_missing = []
+
             encoded_width = probe.get("width")
             encoded_height = probe.get("height")
             resolution_missing = (
@@ -1278,36 +1302,32 @@ class Workspace:
                 )
                 else []
             )
-            fps_warnings = (
-                ["Frame rate is unknown; decode sealing requires measured media metadata."]
-                if not fps_is_known
-                else [
-                    "Measured cadence is outside the recommended 110–121 fps profile. "
-                    "Decode is allowed, but timing and reconstruction may be less reliable."
+
+            if not fps_is_known:
+                fps_warnings = [
+                    "Frame rate is unknown; decode sealing requires measured media metadata."
                 ]
-                if actual_fps < 110
-                else [
+            elif actual_fps < 110:
+                fps_warnings = [_OUT_OF_RANGE_FPS_WARNING]
+            elif is_native_240_capture_frame_rate(actual_fps):
+                fps_warnings = [
                     "Measured 220–242 fps is the native-240 research regime. Preserve "
                     "the native source; Decode prepares a deterministic 120 fps derivative."
                 ]
-                if is_native_240_capture_frame_rate(actual_fps)
-                else [
-                    "Measured cadence is outside the recommended 110–121 fps profile. "
-                    "Decode is allowed, but timing and reconstruction may be less reliable."
+            elif actual_fps > 121:
+                fps_warnings = [_OUT_OF_RANGE_FPS_WARNING]
+            else:
+                fps_warnings = []
+
+            if resolution_missing:
+                resolution_warnings = [
+                    "Encoded dimensions are unknown; decode sealing requires measured "
+                    "media metadata."
                 ]
-                if actual_fps > 121
-                else []
-            )
-            resolution_warnings = (
-                ["Encoded dimensions are unknown; decode sealing requires measured media metadata."]
-                if resolution_missing
-                else [
-                    "Encoded short edge is below the recommended 1080-pixel profile. "
-                    "Decode is allowed, but face reads may be less reliable."
-                ]
-                if not is_standard_capture_resolution(encoded_width, encoded_height)
-                else []
-            )
+            elif not is_standard_capture_resolution(encoded_width, encoded_height):
+                resolution_warnings = [_LOW_RESOLUTION_WARNING]
+            else:
+                resolution_warnings = []
             receipt: dict[str, Any] = {
                 "schema": "cubed-core/capture-bundle",
                 "schema_version": 1,
@@ -1505,15 +1525,9 @@ class Workspace:
         ]
         receipt_warnings = list(warnings)
         if capture_class != "target":
-            receipt_warnings.append(
-                "Measured cadence is outside the recommended 110–121 fps profile. "
-                "Decode is allowed, but timing and reconstruction may be less reliable."
-            )
+            receipt_warnings.append(_OUT_OF_RANGE_FPS_WARNING)
         if not is_standard_capture_resolution(encoded_width, encoded_height):
-            receipt_warnings.append(
-                "Encoded short edge is below the recommended 1080-pixel profile. "
-                "Decode is allowed, but face reads may be less reliable."
-            )
+            receipt_warnings.append(_LOW_RESOLUTION_WARNING)
 
         capture_dir = self.captures_dir / capture_id
         video_name = f"source{extension}"

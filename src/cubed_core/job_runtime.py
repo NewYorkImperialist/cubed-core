@@ -43,6 +43,8 @@ _STAGE_MARKER = re.compile(
     re.MULTILINE,
 )
 _RUNNER_ERROR_DETAIL_MAX_CHARS = 200
+_CLOEXEC_NOFOLLOW = getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+_STABLE_FILE_FIELDS = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
 
 
 class JobRuntimeError(ValueError):
@@ -126,7 +128,7 @@ def load_bounded_artifact(
 ) -> bytes:
     resolved = _secure_file(path, base=base, required=True)
     assert resolved is not None
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_RDONLY | _CLOEXEC_NOFOLLOW
     descriptor: int | None = None
     try:
         descriptor = os.open(resolved, flags)
@@ -148,8 +150,7 @@ def load_bounded_artifact(
             os.close(descriptor)
     if len(payload) > maximum_bytes:
         raise JobRuntimeError(f"{description} exceeds the {maximum_bytes}-byte limit")
-    stable_fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
-    if any(getattr(before, field) != getattr(after, field) for field in stable_fields):
+    if any(getattr(before, field) != getattr(after, field) for field in _STABLE_FILE_FIELDS):
         raise JobRuntimeError(f"{description} changed while it was being read")
     if len(payload) != before.st_size:
         raise JobRuntimeError(f"{description} changed while it was being read")
@@ -168,8 +169,7 @@ def write_exclusive_json(
         )
     except (TypeError, ValueError) as exc:
         raise JobRuntimeError(f"{description} is not finite JSON") from exc
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-    flags |= getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _CLOEXEC_NOFOLLOW
     descriptor: int | None = None
     try:
         descriptor = os.open(path, flags, 0o600)
@@ -191,7 +191,7 @@ def digest_regular_file(path: Path, *, maximum_bytes: int) -> dict[str, Any] | N
         resolved = path.resolve(strict=True)
     except OSError:
         return None
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_RDONLY | _CLOEXEC_NOFOLLOW
     descriptor: int | None = None
     try:
         descriptor = os.open(resolved, flags)
@@ -213,8 +213,7 @@ def digest_regular_file(path: Path, *, maximum_bytes: int) -> dict[str, Any] | N
     finally:
         if descriptor is not None:
             os.close(descriptor)
-    stable_fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
-    if any(getattr(before, field) != getattr(after, field) for field in stable_fields):
+    if any(getattr(before, field) != getattr(after, field) for field in _STABLE_FILE_FIELDS):
         return None
     return {"bytes": before.st_size, "sha256": digest.hexdigest()}
 

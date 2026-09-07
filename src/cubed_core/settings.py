@@ -52,7 +52,13 @@ def _boolean_env(value: str, *, variable: str) -> bool:
     raise ValueError(f"{variable} must be a boolean (1/0, true/false, yes/no, or on/off)")
 
 
-def _argv(value: str, *, variable: str) -> tuple[str, ...]:
+def _argv(
+    value: str,
+    *,
+    variable: str,
+    reserved: frozenset[str] = frozenset({"--request", "--output"}),
+    reserved_message: str = "--request or --output",
+) -> tuple[str, ...]:
     if not value.strip():
         return ()
     try:
@@ -66,12 +72,10 @@ def _argv(value: str, *, variable: str) -> tuple[str, ...]:
     ):
         raise ValueError(f"{variable} is too large or contains an invalid argument")
     if any(
-        token in {"--request", "--output"}
-        or token.startswith("--request=")
-        or token.startswith("--output=")
+        token in reserved or any(token.startswith(f"{flag}=") for flag in reserved)
         for token in command
     ):
-        raise ValueError(f"{variable} must not include reserved --request or --output arguments")
+        raise ValueError(f"{variable} must not include reserved {reserved_message} arguments")
     return command
 
 
@@ -87,32 +91,12 @@ def _decode_mode(value: str) -> str:
 
 
 def _label_predict_command(value: str) -> tuple[str, ...]:
-    if not value.strip():
-        return ()
-    try:
-        command = tuple(shlex.split(value, posix=os.name != "nt"))
-    except ValueError as exc:
-        raise ValueError("CUBED_CORE_LABEL_PREDICT_COMMAND must be valid shell-style argv") from exc
-    if not command:
-        return ()
-    if len(command) > 128 or any(
-        not token or len(token) > 4096 or "\0" in token for token in command
-    ):
-        raise ValueError(
-            "CUBED_CORE_LABEL_PREDICT_COMMAND is too large or contains an invalid argument"
-        )
-    if any(
-        token in {"--request", "--output", "--model"}
-        or token.startswith("--request=")
-        or token.startswith("--output=")
-        or token.startswith("--model=")
-        for token in command
-    ):
-        raise ValueError(
-            "CUBED_CORE_LABEL_PREDICT_COMMAND must not include reserved "
-            "--request, --output, or --model arguments"
-        )
-    return command
+    return _argv(
+        value,
+        variable="CUBED_CORE_LABEL_PREDICT_COMMAND",
+        reserved=frozenset({"--request", "--output", "--model"}),
+        reserved_message="--request, --output, or --model",
+    )
 
 
 def _absolute_path_without_resolving(value: str, *, base: Path) -> Path:

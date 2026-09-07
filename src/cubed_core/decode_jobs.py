@@ -38,7 +38,9 @@ import os
 import subprocess
 import sys
 import threading
+from collections.abc import Iterator
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -152,6 +154,21 @@ class DecodeJobNotReady(DecodeJobError):
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+@contextmanager
+def _translate_job_runtime_error() -> Iterator[None]:
+    """Re-raise a shared ``job_runtime`` I/O error as a ``DecodeJobError``.
+
+    Every bounded-artifact read or exclusive-write in this module reports the
+    same shared error type; this collapses the repeated translation into one
+    place instead of copying the same ``try``/``except`` at each call site.
+    """
+
+    try:
+        yield
+    except JobRuntimeError as exc:
+        raise DecodeJobError(str(exc)) from exc
 
 
 @dataclass(frozen=True)
@@ -834,6 +851,53 @@ def _workstation_context(
     return {"video": projected, "warnings": list(deduplicated.values())[:100]}
 
 
+_REPLAY_CHECK_FIELDS = frozenset({"performed", "solved_reached", "move_count", "detail"})
+_DECODE_TERMINAL_RESULT_FIELDS = frozenset({"sha256", "bytes", "status", "replay_check"})
+_DECODE_TERMINAL_FAILURE_FIELDS = frozenset({"code", "message", "retryable"})
+_DECODE_JOB_RECEIPT_FIELDS = frozenset(
+    {
+        "schema",
+        "schema_version",
+        "job_id",
+        "capture_id",
+        "finished_at",
+        "profile",
+        "request_sha256",
+        "result_sha256",
+        "result_bytes",
+        "result_status",
+        "replay_check",
+        "evidence_scope",
+        "runner_provenance",
+        "runtime_assets",
+    }
+)
+
+
+def _replay_check_fields_valid(replay: dict[str, Any]) -> bool:
+    """Shared type/range checks for one already-``require_object``-shaped replay check."""
+
+    return (
+        type(replay["performed"]) is bool
+        and (replay["solved_reached"] is None or type(replay["solved_reached"]) is bool)
+        and type(replay["move_count"]) is int
+        and replay["move_count"] >= 0
+        and isinstance(replay["detail"], str)
+        and bool(replay["detail"])
+    )
+
+
+def _replay_check_from_dict(value: dict[str, Any]) -> DecodeReplayCheck:
+    """Build a ``DecodeReplayCheck`` from an already-validated replay check mapping."""
+
+    return DecodeReplayCheck(
+        performed=value["performed"],
+        solved_reached=value["solved_reached"],
+        move_count=value["move_count"],
+        detail=value["detail"],
+    )
+
+
 def _parse_decode_job_receipt_for_index(
     path: Path,
     *,
@@ -862,44 +926,14 @@ def _parse_decode_job_receipt_for_index(
         value = require_object(
             value,
             field="decode job receipt",
-            required={
-                "schema",
-                "schema_version",
-                "job_id",
-                "capture_id",
-                "finished_at",
-                "profile",
-                "request_sha256",
-                "result_sha256",
-                "result_bytes",
-                "result_status",
-                "replay_check",
-                "evidence_scope",
-                "runner_provenance",
-                "runtime_assets",
-            },
-            allowed={
-                "schema",
-                "schema_version",
-                "job_id",
-                "capture_id",
-                "finished_at",
-                "profile",
-                "request_sha256",
-                "result_sha256",
-                "result_bytes",
-                "result_status",
-                "replay_check",
-                "evidence_scope",
-                "runner_provenance",
-                "runtime_assets",
-            },
+            required=_DECODE_JOB_RECEIPT_FIELDS,
+            allowed=_DECODE_JOB_RECEIPT_FIELDS,
         )
         replay_check = require_object(
             value["replay_check"],
             field="decode job receipt.replay_check",
-            required={"performed", "solved_reached", "move_count", "detail"},
-            allowed={"performed", "solved_reached", "move_count", "detail"},
+            required=_REPLAY_CHECK_FIELDS,
+            allowed=_REPLAY_CHECK_FIELDS,
         )
     except (JobRuntimeError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
         return None
@@ -923,15 +957,7 @@ def _parse_decode_job_receipt_for_index(
         or value["evidence_scope"] != DECODE_EVIDENCE_SCOPE
         or not isinstance(value["runner_provenance"], dict)
         or not isinstance(value["runtime_assets"], list)
-        or type(replay_check["performed"]) is not bool
-        or (
-            replay_check["solved_reached"] is not None
-            and type(replay_check["solved_reached"]) is not bool
-        )
-        or type(replay_check["move_count"]) is not int
-        or replay_check["move_count"] < 0
-        or not isinstance(replay_check["detail"], str)
-        or not replay_check["detail"]
+        or not _replay_check_fields_valid(replay_check)
     ):
         return None
     return value
@@ -1010,8 +1036,8 @@ def _parse_decode_terminal_for_index(
             failure = require_object(
                 failure,
                 field="decode terminal record.failure",
-                required={"code", "message", "retryable"},
-                allowed={"code", "message", "retryable"},
+                required=_DECODE_TERMINAL_FAILURE_FIELDS,
+                allowed=_DECODE_TERMINAL_FAILURE_FIELDS,
             )
         except JobRuntimeError:
             return None
@@ -1032,14 +1058,14 @@ def _parse_decode_terminal_for_index(
             result = require_object(
                 result,
                 field="decode terminal record.result",
-                required={"sha256", "bytes", "status", "replay_check"},
-                allowed={"sha256", "bytes", "status", "replay_check"},
+                required=_DECODE_TERMINAL_RESULT_FIELDS,
+                allowed=_DECODE_TERMINAL_RESULT_FIELDS,
             )
             replay = require_object(
                 result["replay_check"],
                 field="decode terminal record.result.replay_check",
-                required={"performed", "solved_reached", "move_count", "detail"},
-                allowed={"performed", "solved_reached", "move_count", "detail"},
+                required=_REPLAY_CHECK_FIELDS,
+                allowed=_REPLAY_CHECK_FIELDS,
             )
         except JobRuntimeError:
             return None
@@ -1049,12 +1075,7 @@ def _parse_decode_terminal_for_index(
             or type(result["bytes"]) is not int
             or not 1 <= result["bytes"] <= DECODE_RESULT_MAX_BYTES
             or result["status"] not in {"completed", "abstained", "failed"}
-            or type(replay["performed"]) is not bool
-            or (replay["solved_reached"] is not None and type(replay["solved_reached"]) is not bool)
-            or type(replay["move_count"]) is not int
-            or replay["move_count"] < 0
-            or not isinstance(replay["detail"], str)
-            or not replay["detail"]
+            or not _replay_check_fields_valid(replay)
         ):
             return None
     if value["status"] == "succeeded" and result is None:
@@ -1062,6 +1083,27 @@ def _parse_decode_terminal_for_index(
     if value["status"] != "succeeded" and value["outcome"] not in {"failed", "cancelled"}:
         return None
     return value
+
+
+def _restored_job_paths(job_id: str, job_dir: Path) -> dict[str, Any]:
+    """The ``DecodeJob`` fields shared by every job restored from disk at startup.
+
+    A restored job is already terminal, so it carries none of the sealed
+    scramble, runner command, or in-memory log a live submission would; those
+    fields are the same fixed placeholders for both the terminal-record and
+    the legacy-receipt restoration path below.
+    """
+
+    return {
+        "job_id": job_id,
+        "job_dir": job_dir,
+        "request_path": job_dir / "job-request.json",
+        "output_path": job_dir / "decode-result.json",
+        "scramble": "",
+        "runner_command": (),
+        "log": "",
+        "log_truncated": False,
+    }
 
 
 def _index_decode_jobs(jobs_root: Path, *, maximum: int) -> dict[str, DecodeJob]:
@@ -1095,13 +1137,8 @@ def _index_decode_jobs(jobs_root: Path, *, maximum: int) -> dict[str, DecodeJob]
             failure = terminal["failure"]
             candidates.append(
                 DecodeJob(
-                    job_id=job_id,
+                    **_restored_job_paths(job_id, job_dir),
                     capture_id=terminal["capture_id"],
-                    job_dir=job_dir,
-                    request_path=job_dir / "job-request.json",
-                    output_path=job_dir / "decode-result.json",
-                    scramble="",
-                    runner_command=(),
                     runner_provenance={},
                     runtime_assets=[],
                     status=terminal["status"],
@@ -1109,8 +1146,6 @@ def _index_decode_jobs(jobs_root: Path, *, maximum: int) -> dict[str, DecodeJob]
                     started_at=terminal["started_at"],
                     finished_at=terminal["finished_at"],
                     return_code=terminal["return_code"],
-                    log="",
-                    log_truncated=False,
                     error=failure["message"] if failure is not None else None,
                     failure=failure,
                     video_sha256=terminal["video_sha256"],
@@ -1118,14 +1153,7 @@ def _index_decode_jobs(jobs_root: Path, *, maximum: int) -> dict[str, DecodeJob]
                     result_bytes=result["bytes"] if result is not None else None,
                     result_status=result["status"] if result is not None else None,
                     replay_check=(
-                        DecodeReplayCheck(
-                            performed=replay_value["performed"],
-                            solved_reached=replay_value["solved_reached"],
-                            move_count=replay_value["move_count"],
-                            detail=replay_value["detail"],
-                        )
-                        if replay_value is not None
-                        else None
+                        _replay_check_from_dict(replay_value) if replay_value is not None else None
                     ),
                 )
             )
@@ -1169,16 +1197,8 @@ def _index_decode_jobs(jobs_root: Path, *, maximum: int) -> dict[str, DecodeJob]
         replay_check = receipt["replay_check"]
         candidates.append(
             DecodeJob(
-                job_id=job_id,
+                **_restored_job_paths(job_id, job_dir),
                 capture_id=receipt["capture_id"],
-                job_dir=job_dir,
-                request_path=job_dir / "job-request.json",
-                output_path=job_dir / "decode-result.json",
-                # The sealed scramble is not retained in the receipt and is only
-                # needed to replay a run before it succeeds; a restored job is
-                # already a succeeded, already-replayed job.
-                scramble="",
-                runner_command=(),
                 runner_provenance=receipt["runner_provenance"],
                 runtime_assets=receipt["runtime_assets"],
                 status="succeeded",
@@ -1188,20 +1208,13 @@ def _index_decode_jobs(jobs_root: Path, *, maximum: int) -> dict[str, DecodeJob]
                 started_at=None,
                 finished_at=receipt["finished_at"],
                 return_code=0,
-                log="",
-                log_truncated=False,
                 error=None,
                 failure=None,
                 video_sha256=None,
                 result_sha256=receipt["result_sha256"],
                 result_bytes=receipt["result_bytes"],
                 result_status=receipt["result_status"],
-                replay_check=DecodeReplayCheck(
-                    performed=replay_check["performed"],
-                    solved_reached=replay_check["solved_reached"],
-                    move_count=replay_check["move_count"],
-                    detail=replay_check["detail"],
-                ),
+                replay_check=_replay_check_from_dict(replay_check),
             )
         )
     if orphaned_run_count:
@@ -1696,14 +1709,12 @@ class DecodeJobService:
                         raise DecodeJobError(
                             f"decode result exceeds the {DECODE_RESULT_MAX_BYTES}-byte limit"
                         )
-                    try:
+                    with _translate_job_runtime_error():
                         payload = write_exclusive_json(
                             job.output_path,
                             final_result,
                             description="decode result",
                         )
-                    except JobRuntimeError as exc:
-                        raise DecodeJobError(str(exc)) from exc
                     if payload != preview:  # pragma: no cover - shared serializer contract
                         raise DecodeJobError(
                             "decode result serialization changed during publication"
@@ -1749,19 +1760,24 @@ class DecodeJobService:
                     job.log = log
                     job.log_truncated = log_truncated
                     job.error = str(exc)[:1000] or type(exc).__name__
+                    if cancelled:
+                        code, message = (
+                            "service-shutdown",
+                            "The decode service stopped before this run completed.",
+                        )
+                    elif isinstance(exc, DecodeJobError):
+                        code, message = (
+                            "invalid-result",
+                            "The decode runner did not produce a valid result.",
+                        )
+                    else:
+                        code, message = (
+                            "internal-error",
+                            "The decode service could not complete this run.",
+                        )
                     job.failure = _failure(
-                        "service-shutdown"
-                        if cancelled
-                        else "invalid-result"
-                        if isinstance(exc, DecodeJobError)
-                        else "internal-error",
-                        (
-                            "The decode service stopped before this run completed."
-                            if cancelled
-                            else "The decode runner did not produce a valid result."
-                            if isinstance(exc, DecodeJobError)
-                            else "The decode service could not complete this run."
-                        ),
+                        code,
+                        message,
                         retryable=cancelled or not isinstance(exc, DecodeJobError),
                     )
         finally:
@@ -1777,15 +1793,13 @@ class DecodeJobService:
             self._slots.release()
 
     def _load_result(self, job: DecodeJob) -> tuple[dict[str, Any], bytes]:
-        try:
+        with _translate_job_runtime_error():
             payload = load_bounded_artifact(
                 job.runner_output_path,
                 base=job.job_dir,
                 maximum_bytes=DECODE_RESULT_MAX_BYTES,
                 description="decode runner result",
             )
-        except JobRuntimeError as exc:
-            raise DecodeJobError(str(exc)) from exc
         try:
             value = json.loads(payload, parse_constant=reject_nonfinite)
         except (UnicodeDecodeError, ValueError) as exc:
@@ -1918,7 +1932,7 @@ class DecodeJobService:
             raise DecodeJobError("decode runner identity changed while the job was running")
         if _runtime_assets(self.settings) != job.runtime_assets:
             raise DecodeJobError("decode runtime model artifacts changed while the job was running")
-        try:
+        with _translate_job_runtime_error():
             request_payload = load_bounded_artifact(
                 job.request_path,
                 base=job.job_dir,
@@ -1945,8 +1959,6 @@ class DecodeJobService:
                 },
                 description="decode job receipt",
             )
-        except JobRuntimeError as exc:
-            raise DecodeJobError(str(exc)) from exc
 
     def _persist_terminal_record(self, job: DecodeJob) -> None:
         """Persist the restart-safe, log-free summary of one terminal attempt."""
@@ -1971,7 +1983,7 @@ class DecodeJobService:
             }
         if job.status == "succeeded" and result is None:
             raise DecodeJobError("decode success binding is unavailable")
-        try:
+        with _translate_job_runtime_error():
             write_exclusive_json(
                 job.job_dir / "run-terminal.json",
                 {
@@ -1991,8 +2003,6 @@ class DecodeJobService:
                 },
                 description="decode terminal record",
             )
-        except JobRuntimeError as exc:
-            raise DecodeJobError(str(exc)) from exc
 
     def _try_persist_terminal_record(self, job: DecodeJob) -> None:
         terminal_path = job.job_dir / "run-terminal.json"
@@ -2120,7 +2130,7 @@ class DecodeJobService:
             result_bytes = job.result_bytes
         if result_sha256 is None or result_bytes is None:
             raise DecodeJobError("decode success binding is unavailable")
-        try:
+        with _translate_job_runtime_error():
             receipt_payload = load_bounded_artifact(
                 job_dir / "decode-receipt.json",
                 base=job_dir,
@@ -2133,8 +2143,6 @@ class DecodeJobService:
                 maximum_bytes=DECODE_RESULT_MAX_BYTES,
                 description="decode result",
             )
-        except JobRuntimeError as exc:
-            raise DecodeJobError(str(exc)) from exc
         try:
             receipt = json.loads(receipt_payload)
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:

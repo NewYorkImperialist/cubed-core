@@ -31,9 +31,8 @@ def _rate_fraction(value: object) -> Fraction | None:
     return rate if rate > 0 else None
 
 
-def _rate(value: object) -> float | None:
-    rate = _rate_fraction(value)
-    return round(float(rate), 4) if rate is not None else None
+def _rational_text(rate: Fraction | None) -> str | None:
+    return f"{rate.numerator}/{rate.denominator}" if rate is not None else None
 
 
 def _finite_frame_rate(fps: object) -> float | None:
@@ -43,12 +42,13 @@ def _finite_frame_rate(fps: object) -> float | None:
     return normalized if math.isfinite(normalized) else None
 
 
-def is_standard_capture_frame_rate(fps: object) -> bool:
+def _frame_rate_in_range(fps: object, minimum: float, maximum: float) -> bool:
     normalized = _finite_frame_rate(fps)
-    return (
-        normalized is not None
-        and STANDARD_CAPTURE_FPS_MIN <= normalized <= STANDARD_CAPTURE_FPS_MAX
-    )
+    return normalized is not None and minimum <= normalized <= maximum
+
+
+def is_standard_capture_frame_rate(fps: object) -> bool:
+    return _frame_rate_in_range(fps, STANDARD_CAPTURE_FPS_MIN, STANDARD_CAPTURE_FPS_MAX)
 
 
 def is_standard_capture_resolution(width: object, height: object) -> bool:
@@ -64,11 +64,7 @@ def is_standard_capture_resolution(width: object, height: object) -> bool:
 
 
 def is_native_240_capture_frame_rate(fps: object) -> bool:
-    normalized = _finite_frame_rate(fps)
-    return (
-        normalized is not None
-        and NATIVE_240_CAPTURE_FPS_MIN <= normalized <= NATIVE_240_CAPTURE_FPS_MAX
-    )
+    return _frame_rate_in_range(fps, NATIVE_240_CAPTURE_FPS_MIN, NATIVE_240_CAPTURE_FPS_MAX)
 
 
 def classify_frame_rate(fps: float | None) -> tuple[str, str]:
@@ -96,6 +92,46 @@ def classify_frame_rate(fps: float | None) -> tuple[str, str]:
             "220–242 fps qualifies as native-240 research footage.",
         )
     return "unsupported", "Retained as evidence only; 30 fps is not a supported decode input."
+
+
+def _probed_frame_count(stream: dict[str, Any]) -> int | None:
+    for field in ("nb_frames", "nb_read_frames"):
+        try:
+            frame_count = int(stream.get(field))
+        except (TypeError, ValueError):
+            continue
+        if frame_count > 0:
+            return frame_count
+    return None
+
+
+def _probed_rotation_degrees(stream: dict[str, Any]) -> int:
+    # Keep the same decoder-facing convention as Cubed's established native
+    # ingest path: ffprobe display-matrix side data is counter-clockwise
+    # positive, while the legacy rotate tag is already clockwise positive.
+    # Prefer the display matrix when both are present.
+    side_rotation = next(
+        (
+            side_data["rotation"]
+            for side_data in stream.get("side_data_list") or []
+            if isinstance(side_data, dict) and "rotation" in side_data
+        ),
+        None,
+    )
+    tagged_rotation = stream.get("tags", {}).get("rotate")
+    try:
+        clockwise_rotation = (
+            -float(side_rotation) if side_rotation is not None else float(tagged_rotation)
+        ) % 360.0
+        distance_from_right_angle = min(
+            clockwise_rotation % 90.0,
+            90.0 - clockwise_rotation % 90.0,
+        )
+        if distance_from_right_angle > 1.0:
+            raise ValueError("rotation is not a right angle")
+        return int(round(clockwise_rotation / 90.0)) * 90 % 360
+    except (TypeError, ValueError):
+        return 0
 
 
 def probe_video(path: Path, *, count_frames: bool = False) -> dict[str, Any]:
@@ -166,58 +202,20 @@ def probe_video(path: Path, *, count_frames: bool = False) -> dict[str, Any]:
     nominal_rate = _rate_fraction(stream.get("r_frame_rate"))
     selected_rate = average_rate or nominal_rate
     fps = round(float(selected_rate), 4) if selected_rate is not None else None
-    fps_rational = (
-        f"{selected_rate.numerator}/{selected_rate.denominator}"
-        if selected_rate is not None
-        else None
-    )
-    fps_basis = (
-        "avg_frame_rate"
-        if average_rate is not None
-        else "r_frame_rate"
-        if nominal_rate is not None
-        else None
-    )
+    fps_rational = _rational_text(selected_rate)
+    if average_rate is not None:
+        fps_basis = "avg_frame_rate"
+    elif nominal_rate is not None:
+        fps_basis = "r_frame_rate"
+    else:
+        fps_basis = None
     duration_value = stream.get("duration") or payload.get("format", {}).get("duration")
     try:
         duration_seconds = round(float(duration_value), 3)
     except (TypeError, ValueError):
         duration_seconds = None
-    frame_count = None
-    for field in ("nb_frames", "nb_read_frames"):
-        try:
-            frame_count = int(stream.get(field))
-        except (TypeError, ValueError):
-            continue
-        if frame_count > 0:
-            break
-        frame_count = None
-    # Keep the same decoder-facing convention as Cubed's established native
-    # ingest path: ffprobe display-matrix side data is counter-clockwise
-    # positive, while the legacy rotate tag is already clockwise positive.
-    # Prefer the display matrix when both are present.
-    side_rotation = next(
-        (
-            side_data["rotation"]
-            for side_data in stream.get("side_data_list") or []
-            if isinstance(side_data, dict) and "rotation" in side_data
-        ),
-        None,
-    )
-    tagged_rotation = stream.get("tags", {}).get("rotate")
-    try:
-        clockwise_rotation = (
-            -float(side_rotation) if side_rotation is not None else float(tagged_rotation)
-        ) % 360.0
-        distance_from_right_angle = min(
-            clockwise_rotation % 90.0,
-            90.0 - clockwise_rotation % 90.0,
-        )
-        if distance_from_right_angle > 1.0:
-            raise ValueError("rotation is not a right angle")
-        rotation_degrees = int(round(clockwise_rotation / 90.0)) * 90 % 360
-    except (TypeError, ValueError):
-        rotation_degrees = 0
+    frame_count = _probed_frame_count(stream)
+    rotation_degrees = _probed_rotation_degrees(stream)
 
     capture_class, guidance = classify_frame_rate(fps)
 
@@ -230,16 +228,8 @@ def probe_video(path: Path, *, count_frames: bool = False) -> dict[str, Any]:
         "fps": fps,
         "fps_rational": fps_rational,
         "fps_basis": fps_basis,
-        "avg_frame_rate": (
-            f"{average_rate.numerator}/{average_rate.denominator}"
-            if average_rate is not None
-            else None
-        ),
-        "r_frame_rate": (
-            f"{nominal_rate.numerator}/{nominal_rate.denominator}"
-            if nominal_rate is not None
-            else None
-        ),
+        "avg_frame_rate": _rational_text(average_rate),
+        "r_frame_rate": _rational_text(nominal_rate),
         "frame_count": frame_count,
         "rotation_degrees": rotation_degrees,
         "duration_seconds": duration_seconds,

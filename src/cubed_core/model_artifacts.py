@@ -19,7 +19,7 @@ TRACKER_SUPPORTED_MODEL_PROFILES = ("camera-tracker-v1",)
 
 
 class ModelArtifactError(ValueError):
-    pass
+    """A fail-closed model artifact manifest validation failure."""
 
 
 @dataclass(frozen=True)
@@ -182,6 +182,65 @@ def _load_json(path: Path) -> dict[str, Any]:
     )
 
 
+def _parse_manifest_artifact(
+    item: dict[str, Any],
+    *,
+    artifact_id: str,
+    role: str,
+    base: Path,
+    field: str,
+) -> VerifiedModelArtifact:
+    format_name = _string(item["format"], field=f"{field}.format", maximum=100)
+    if format_name not in _FORMATS:
+        raise ModelArtifactError(f"{field}.format is unsupported")
+    redistribution = _string(
+        item["redistribution"],
+        field=f"{field}.redistribution",
+        maximum=100,
+    )
+    if redistribution not in _REDISTRIBUTION:
+        raise ModelArtifactError(f"{field}.redistribution is unsupported")
+    expected_bytes = _integer(
+        item["bytes"],
+        field=f"{field}.bytes",
+        minimum=1,
+        maximum=MODEL_ARTIFACT_MAX_BYTES,
+    )
+    expected_sha256 = _string(item["sha256"], field=f"{field}.sha256", maximum=64)
+    if not _SHA256.fullmatch(expected_sha256):
+        raise ModelArtifactError(f"{field}.sha256 must be a lowercase SHA-256 digest")
+    artifact_path = _relative_artifact_path(
+        item["path"],
+        base=base,
+        field=f"{field}.path",
+    )
+    actual_bytes = artifact_path.stat().st_size
+    if actual_bytes != expected_bytes:
+        raise ModelArtifactError(
+            f"{field}.bytes expected {expected_bytes} but found {actual_bytes}"
+        )
+    actual_sha256 = _sha256(artifact_path)
+    if actual_sha256 != expected_sha256:
+        raise ModelArtifactError(
+            f"{field}.sha256 expected {expected_sha256} but found {actual_sha256}"
+        )
+    model_card = item["model_card"]
+    if model_card is not None:
+        model_card = _string(model_card, field=f"{field}.model_card", maximum=8192)
+    return VerifiedModelArtifact(
+        artifact_id=artifact_id,
+        role=role,
+        format=format_name,
+        path=artifact_path,
+        bytes=actual_bytes,
+        sha256=actual_sha256,
+        redistribution=redistribution,
+        license=_string(item["license"], field=f"{field}.license", maximum=500),
+        source=_string(item["source"], field=f"{field}.source", maximum=2000),
+        model_card=model_card,
+    )
+
+
 def load_and_verify_model_manifest(
     manifest_path: Path,
     *,
@@ -245,56 +304,9 @@ def load_and_verify_model_manifest(
             raise ModelArtifactError(f"{field}.role duplicates {role}")
         seen_ids.add(artifact_id)
         seen_roles.add(role)
-
-        format_name = _string(item["format"], field=f"{field}.format", maximum=100)
-        if format_name not in _FORMATS:
-            raise ModelArtifactError(f"{field}.format is unsupported")
-        redistribution = _string(
-            item["redistribution"],
-            field=f"{field}.redistribution",
-            maximum=100,
-        )
-        if redistribution not in _REDISTRIBUTION:
-            raise ModelArtifactError(f"{field}.redistribution is unsupported")
-        expected_bytes = _integer(
-            item["bytes"],
-            field=f"{field}.bytes",
-            minimum=1,
-            maximum=MODEL_ARTIFACT_MAX_BYTES,
-        )
-        expected_sha256 = _string(item["sha256"], field=f"{field}.sha256", maximum=64)
-        if not _SHA256.fullmatch(expected_sha256):
-            raise ModelArtifactError(f"{field}.sha256 must be a lowercase SHA-256 digest")
-        artifact_path = _relative_artifact_path(
-            item["path"],
-            base=base,
-            field=f"{field}.path",
-        )
-        actual_bytes = artifact_path.stat().st_size
-        if actual_bytes != expected_bytes:
-            raise ModelArtifactError(
-                f"{field}.bytes expected {expected_bytes} but found {actual_bytes}"
-            )
-        actual_sha256 = _sha256(artifact_path)
-        if actual_sha256 != expected_sha256:
-            raise ModelArtifactError(
-                f"{field}.sha256 expected {expected_sha256} but found {actual_sha256}"
-            )
-        model_card = item["model_card"]
-        if model_card is not None:
-            model_card = _string(model_card, field=f"{field}.model_card", maximum=8192)
         artifacts.append(
-            VerifiedModelArtifact(
-                artifact_id=artifact_id,
-                role=role,
-                format=format_name,
-                path=artifact_path,
-                bytes=actual_bytes,
-                sha256=actual_sha256,
-                redistribution=redistribution,
-                license=_string(item["license"], field=f"{field}.license", maximum=500),
-                source=_string(item["source"], field=f"{field}.source", maximum=2000),
-                model_card=model_card,
+            _parse_manifest_artifact(
+                item, artifact_id=artifact_id, role=role, base=base, field=field
             )
         )
 
@@ -332,6 +344,8 @@ def load_and_verify_tracker_model_manifest(
 
 
 def tracker_model_capability(manifest_path: Path | None) -> dict[str, Any]:
+    """Report the native tracker's model readiness without raising on invalid input."""
+
     if manifest_path is None:
         return {
             "status": "not-configured",

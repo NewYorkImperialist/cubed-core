@@ -42,6 +42,13 @@ def _doctor(settings: Settings) -> int:
     return 0 if ready else 1
 
 
+def _workspace(settings: Settings) -> Workspace:
+    return Workspace(
+        settings.workspace,
+        max_upload_bytes=settings.max_upload_bytes,
+    )
+
+
 def _import_video(
     settings: Settings,
     path: Path,
@@ -53,10 +60,7 @@ def _import_video(
     camera_facing: str,
     mirrored: bool,
 ) -> int:
-    workspace = Workspace(
-        settings.workspace,
-        max_upload_bytes=settings.max_upload_bytes,
-    )
+    workspace = _workspace(settings)
     try:
         with path.open("rb") as stream:
             receipt = workspace.import_video(
@@ -77,10 +81,7 @@ def _import_video(
 
 
 def _derive_240_to_120(settings: Settings, capture_id: str) -> int:
-    workspace = Workspace(
-        settings.workspace,
-        max_upload_bytes=settings.max_upload_bytes,
-    )
+    workspace = _workspace(settings)
     try:
         receipt = workspace.derive_240_to_120(capture_id)
     except (OSError, WorkspaceError) as exc:

@@ -62,13 +62,6 @@ class ArtifactIdentity:
     bytes: int
     sha256: str
 
-    def public(self) -> dict[str, Any]:
-        return {
-            "path": self.path,
-            "bytes": self.bytes,
-            "sha256": self.sha256,
-        }
-
 
 @dataclass(frozen=True, slots=True)
 class GroundTruthDocumentIdentity:
@@ -124,6 +117,11 @@ def _array(value: Any, *, field: str) -> list[Any]:
     return value
 
 
+def _exact_keys(value: Mapping[str, Any], keys: set[str], *, field: str) -> None:
+    if set(value) != keys:
+        raise PublicGroundTruthError(f"{field} has unsupported fields")
+
+
 def _string(
     value: Any,
     *,
@@ -175,8 +173,7 @@ def _relative_path(value: Any, *, field: str) -> str:
 
 def _artifact(value: Any, *, field: str) -> ArtifactIdentity:
     item = _object(value, field=field)
-    if set(item) != {"path", "bytes", "sha256"}:
-        raise PublicGroundTruthError(f"{field} has unsupported fields")
+    _exact_keys(item, {"path", "bytes", "sha256"}, field=field)
     return ArtifactIdentity(
         path=_relative_path(item.get("path"), field=f"{field}.path"),
         bytes=_positive_int(item.get("bytes"), field=f"{field}.bytes"),
@@ -310,7 +307,7 @@ def fold_raw_qtm_to_htm(moves: Sequence[Any]) -> list[str]:
 def _public_scramble(
     capture_id: str,
     document: Mapping[str, Any],
-) -> tuple[str, bool]:
+) -> str:
     if (
         document.get("schema") != PUBLIC_SCRAMBLE_SCHEMA
         or document.get("schema_version") != 1
@@ -348,7 +345,7 @@ def _public_scramble(
     )
     if recording_start is not None and recording_start != SOLVED_FACELETS:
         raise PublicGroundTruthError("published recording start state is unsupported")
-    return notation, recording_start is not None
+    return notation
 
 
 def _ble_session_identity(
@@ -509,7 +506,7 @@ def validate_public_ground_truth_documents(
     _string(video_sha256, field="video sha256", maximum=64, pattern=_SHA256)
     _positive_int(video_frame_count, field="video frame count")
 
-    scramble, _ = _public_scramble(capture_id, scramble_document)
+    scramble = _public_scramble(capture_id, scramble_document)
     (
         video_recording_id,
         video_link_status,
@@ -569,8 +566,7 @@ def validate_public_ground_truth_index(value: Any) -> dict[str, Any]:
         "corpus_manifest",
         "local_dataset_root",
     }
-    if set(dataset) != expected_dataset_keys:
-        raise PublicGroundTruthError("public ground-truth dataset has unsupported fields")
+    _exact_keys(dataset, expected_dataset_keys, field="public ground-truth dataset")
     _string(dataset.get("dataset_id"), field="dataset_id", maximum=128)
     _string(dataset.get("revision"), field="revision", maximum=128)
     _string(
@@ -601,21 +597,30 @@ def validate_public_ground_truth_index(value: Any) -> dict[str, Any]:
     if not root_path.is_absolute():
         raise PublicGroundTruthError("local_dataset_root must be absolute")
 
+    expected_capture_keys = {
+        "capture_id",
+        "tag",
+        "video",
+        "scramble",
+        "ble_session",
+        "frame_ground_truth",
+        "linkage",
+    }
+    expected_linkage_keys = {
+        "video_recording_id",
+        "video_link_status",
+        "capture_session_id",
+        "recording_id",
+        "scramble_field",
+        "raw_qtm_count",
+        "canonical_htm_count",
+        "reference_scope",
+    }
     captures = _array(document.get("captures"), field="public ground-truth captures")
     seen: set[str] = set()
     for index, raw_capture in enumerate(captures):
         capture = _object(raw_capture, field=f"captures[{index}]")
-        expected_capture_keys = {
-            "capture_id",
-            "tag",
-            "video",
-            "scramble",
-            "ble_session",
-            "frame_ground_truth",
-            "linkage",
-        }
-        if set(capture) != expected_capture_keys:
-            raise PublicGroundTruthError(f"captures[{index}] has unsupported fields")
+        _exact_keys(capture, expected_capture_keys, field=f"captures[{index}]")
         capture_id = _string(
             capture.get("capture_id"),
             field=f"captures[{index}].capture_id",
@@ -628,8 +633,11 @@ def validate_public_ground_truth_index(value: Any) -> dict[str, Any]:
         _string(capture.get("tag"), field=f"captures[{index}].tag", maximum=64)
 
         video = _object(capture.get("video"), field=f"captures[{index}].video")
-        if set(video) != {"path", "bytes", "sha256", "frame_count"}:
-            raise PublicGroundTruthError(f"captures[{index}].video has unsupported fields")
+        _exact_keys(
+            video,
+            {"path", "bytes", "sha256", "frame_count"},
+            field=f"captures[{index}].video",
+        )
         video_artifact = _artifact(
             {key: video.get(key) for key in ("path", "bytes", "sha256")},
             field=f"captures[{index}].video artifact",
@@ -666,18 +674,7 @@ def validate_public_ground_truth_index(value: Any) -> dict[str, Any]:
             capture.get("linkage"),
             field=f"captures[{index}].linkage",
         )
-        expected_linkage_keys = {
-            "video_recording_id",
-            "video_link_status",
-            "capture_session_id",
-            "recording_id",
-            "scramble_field",
-            "raw_qtm_count",
-            "canonical_htm_count",
-            "reference_scope",
-        }
-        if set(linkage) != expected_linkage_keys:
-            raise PublicGroundTruthError(f"captures[{index}].linkage has unsupported fields")
+        _exact_keys(linkage, expected_linkage_keys, field=f"captures[{index}].linkage")
         if linkage.get("video_recording_id") != capture_id:
             raise PublicGroundTruthError("public ground-truth video linkage is invalid")
         if linkage.get("video_link_status") not in {"linked", "failed_timeout"}:
@@ -869,7 +866,7 @@ def load_public_ground_truth_binding(
 
 def _verified_documents(
     binding: PublicGroundTruthBinding,
-) -> tuple[GroundTruthDocumentIdentity, dict[str, Any] | None]:
+) -> tuple[GroundTruthDocumentIdentity, dict[str, Any]]:
     # Reverify the two dataset-wide authorities before opening the capture
     # artifacts.  The receipt itself is not portable identity, but its hash
     # records which verified local download produced this index.
@@ -916,7 +913,7 @@ def _verified_documents(
     )
     if identity.index_linkage() != binding.linkage:
         raise PublicGroundTruthError("published ground-truth linkage changed after registration")
-    return identity, frame_document
+    return identity, scramble_document
 
 
 def build_public_ground_truth_diagnostic(
@@ -945,13 +942,8 @@ def build_public_ground_truth_diagnostic(
     if expected_video_sha256 != binding.video.sha256:
         raise PublicGroundTruthError("decode and published video identities disagree")
 
-    identity, _ = _verified_documents(binding)
-    scramble_document = _read_bound_json(
-        binding.dataset_root,
-        binding.scramble,
-        field="published scramble",
-    )
-    published_scramble, _ = _public_scramble(binding.capture_id, scramble_document)
+    identity, scramble_document = _verified_documents(binding)
+    published_scramble = _public_scramble(binding.capture_id, scramble_document)
     if _canonical_algorithm(scramble, field="decode scramble") != published_scramble:
         raise PublicGroundTruthError("decode and published scramble identities disagree")
 

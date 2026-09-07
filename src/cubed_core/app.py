@@ -62,9 +62,26 @@ SIDECAR_MAX_BYTES = 64 * 1024**2
 LABEL_REQUEST_MAX_BYTES = 64 * 1024
 CALIBRATION_CROPS_REQUEST_MAX_BYTES = 6 * MAX_CROP_BYTES + MULTIPART_OVERHEAD_BYTES
 
+_CAPTURE_NOT_FOUND = frozenset({"capture not found"})
+_CAPTURE_NOT_FOUND_OR_UNAVAILABLE = frozenset({"capture not found", "capture video is unavailable"})
+
 
 class _RequestBodyTooLarge(Exception):
     pass
+
+
+def _workspace_error_response(
+    exc: WorkspaceError,
+    *,
+    not_found: frozenset[str] = _CAPTURE_NOT_FOUND,
+    other_status: int = 400,
+    other_detail: str | None = None,
+) -> HTTPException:
+    """Map a ``WorkspaceError`` to the repeated route-handler status/detail shape."""
+
+    if str(exc) in not_found:
+        return HTTPException(status_code=404, detail=str(exc))
+    return HTTPException(status_code=other_status, detail=other_detail or str(exc))
 
 
 def _is_loopback_host(value: str) -> bool:
@@ -458,11 +475,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             return await run_in_threadpool(workspace.trash_capture, capture_id)
         except WorkspaceError as exc:
-            if str(exc) == "capture not found":
-                raise HTTPException(status_code=404, detail="capture not found") from exc
-            raise HTTPException(
-                status_code=500,
-                detail="capture could not be moved to Trash",
+            raise _workspace_error_response(
+                exc,
+                other_status=500,
+                other_detail="capture could not be moved to Trash",
             ) from exc
 
     @app.post("/api/label/assist/extrapolate")
@@ -490,8 +506,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 expected_sha256=str(receipt["video"]["sha256"]),
             )
         except WorkspaceError as exc:
-            status = 404 if str(exc) == "capture annotations not found" else 500
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(
+                exc,
+                not_found=frozenset({"capture annotations not found"}),
+                other_status=500,
+            ) from exc
         except (json.JSONDecodeError, UnicodeDecodeError, FrameAnnotationError) as exc:
             raise HTTPException(
                 status_code=500,
@@ -526,8 +545,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except FrameAnnotationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except WorkspaceError as exc:
-            status = 404 if str(exc) == "capture not found" else 500
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(exc, other_status=500) from exc
         return {
             "status": "saved",
             "capture_id": capture_id,
@@ -561,19 +579,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 export_directory / f"{capture_id}.label-dataset.zip",
             )
         except WorkspaceError as exc:
-            status = (
-                404
-                if str(exc)
-                in {
-                    "capture not found",
-                    "capture video is unavailable",
-                    "capture annotations not found",
-                }
-                else 500
-            )
             if export_directory is not None:
                 shutil.rmtree(export_directory, ignore_errors=True)
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(
+                exc,
+                not_found=frozenset(
+                    {
+                        "capture not found",
+                        "capture video is unavailable",
+                        "capture annotations not found",
+                    }
+                ),
+                other_status=500,
+            ) from exc
         except (json.JSONDecodeError, UnicodeDecodeError, FrameAnnotationError) as exc:
             if export_directory is not None:
                 shutil.rmtree(export_directory, ignore_errors=True)
@@ -631,10 +649,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except LabelPredictionError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except WorkspaceError as exc:
-            status = (
-                404 if str(exc) in {"capture not found", "capture video is unavailable"} else 400
-            )
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(
+                exc,
+                not_found=_CAPTURE_NOT_FOUND_OR_UNAVAILABLE,
+            ) from exc
         finally:
             label_prediction_lock.release()
 
@@ -661,10 +679,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except LabelPredictionError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except WorkspaceError as exc:
-            status = (
-                404 if str(exc) in {"capture not found", "capture video is unavailable"} else 400
-            )
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(
+                exc,
+                not_found=_CAPTURE_NOT_FOUND_OR_UNAVAILABLE,
+            ) from exc
         finally:
             label_prediction_lock.release()
 
@@ -673,10 +691,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             workspace.capture_video_path(capture_id)
         except WorkspaceError as exc:
-            status = (
-                404 if str(exc) in {"capture not found", "capture video is unavailable"} else 400
-            )
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(
+                exc,
+                not_found=_CAPTURE_NOT_FOUND_OR_UNAVAILABLE,
+            ) from exc
         ticket = media_tickets.create(capture_id)
         return {
             "capture_id": capture_id,
@@ -699,10 +717,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             video_path = workspace.capture_video_path(capture_id)
         except WorkspaceError as exc:
-            status = (
-                404 if str(exc) in {"capture not found", "capture video is unavailable"} else 400
-            )
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(
+                exc,
+                not_found=_CAPTURE_NOT_FOUND_OR_UNAVAILABLE,
+            ) from exc
         return FileResponse(
             video_path,
             headers={
@@ -716,20 +734,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def capture_frame(capture_id: str, frame_index: int) -> Response:
         try:
             video_path = workspace.capture_video_path(capture_id)
-            receipt = next(
-                row for row in workspace.list_captures() if row.get("capture_id") == capture_id
-            )
+            receipt = capture_receipt(capture_id)
             frame_count = receipt.get("video", {}).get("frame_count")
             if isinstance(frame_count, int) and frame_index >= frame_count:
                 raise WorkspaceError("frame is outside the video")
             jpeg = await run_in_threadpool(extract_frame_jpeg, video_path, frame_index)
-        except StopIteration as exc:
-            raise HTTPException(status_code=404, detail="capture not found") from exc
         except WorkspaceError as exc:
-            status = (
-                404 if str(exc) in {"capture not found", "capture video is unavailable"} else 400
-            )
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(
+                exc,
+                not_found=_CAPTURE_NOT_FOUND_OR_UNAVAILABLE,
+            ) from exc
         except MediaError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return Response(
@@ -816,8 +830,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 ),
             )
         except WorkspaceError as exc:
-            status = 404 if str(exc) == "capture not found" else 400
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(exc) from exc
         finally:
             await sidecar.close()
 
@@ -867,12 +880,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     raise DesktopCalibrationError(f"{color} crop exceeds the 2 MiB limit")
                 crops[color] = payload
 
-            try:
-                receipt = next(
-                    row for row in workspace.list_captures() if row.get("capture_id") == capture_id
-                )
-            except StopIteration as exc:
-                raise WorkspaceError("capture not found") from exc
+            receipt = capture_receipt(capture_id)
             video_sha256 = receipt.get("video", {}).get("sha256")
             if not isinstance(video_sha256, str) or not re.fullmatch(
                 r"[a-f0-9]{64}",
@@ -896,9 +904,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except DesktopCalibrationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except WorkspaceError as exc:
-            detail = str(exc)
-            status = 404 if detail == "capture not found" else 400
-            raise HTTPException(status_code=status, detail=detail) from exc
+            raise _workspace_error_response(exc) from exc
         finally:
             for upload in uploads.values():
                 await upload.close()
@@ -911,8 +917,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             return workspace.seal_capture(capture_id, purpose=purpose)
         except WorkspaceError as exc:
-            status = 404 if str(exc) == "capture not found" else 400
-            raise HTTPException(status_code=status, detail=str(exc)) from exc
+            raise _workspace_error_response(exc) from exc
 
     if frontend_index.is_file():
         assets_dir = frontend_dist / "assets"

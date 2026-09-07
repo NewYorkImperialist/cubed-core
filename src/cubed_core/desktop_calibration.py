@@ -15,7 +15,8 @@ capture, video digest, and exact submitted-crop digest in its provenance.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from typing import Any
 
 from . import grid_calibration
@@ -37,6 +38,16 @@ MAX_CROP_EDGE_PIXELS = 512
 
 class DesktopCalibrationError(ValueError):
     """Raised when a desktop calibration crop set is invalid."""
+
+
+@contextmanager
+def _vision_runtime_errors_as_calibration_errors() -> Iterator[None]:
+    """Map a missing/broken OpenCV runtime to the calibration error contract."""
+
+    try:
+        yield
+    except VisionRuntimeUnavailable as exc:
+        raise DesktopCalibrationError(str(exc)) from exc
 
 
 def _decode_crop(color: str, payload: bytes) -> Any:
@@ -62,12 +73,10 @@ def _decode_crop(color: str, payload: bytes) -> Any:
             f"{color} crop dimensions must be from {MIN_CROP_EDGE_PIXELS} "
             f"through {MAX_CROP_EDGE_PIXELS} pixels per side"
         )
-    try:
+    with _vision_runtime_errors_as_calibration_errors():
         cv2, numpy = require_vision_runtime()
         encoded = numpy.frombuffer(payload, dtype=numpy.uint8)
         frame_bgr = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
-    except VisionRuntimeUnavailable as exc:
-        raise DesktopCalibrationError(str(exc)) from exc
     if frame_bgr is None:
         raise DesktopCalibrationError(f"{color} crop is not a valid PNG")
     height, width = frame_bgr.shape[:2]
@@ -94,15 +103,13 @@ def build_centroids_document_from_crops(
     for color in COLOR_ORDER:
         payload = crops[color]
         frame_bgr = _decode_crop(color, payload)
-        try:
+        with _vision_runtime_errors_as_calibration_errors():
             medians = grid_calibration.sample_grid(frame_bgr)
             accepted, reason, _ = grid_calibration.evaluate_frame(
                 medians,
                 medians,
                 MINIMUM_L,
             )
-        except VisionRuntimeUnavailable as exc:
-            raise DesktopCalibrationError(str(exc)) from exc
         if not accepted:
             if reason == "dark":
                 detail = "is too dark"
@@ -111,20 +118,16 @@ def build_centroids_document_from_crops(
             else:
                 detail = "could not be sampled"
             raise DesktopCalibrationError(f"{color} crop {detail}; choose a clearer sticker area")
-        try:
+        with _vision_runtime_errors_as_calibration_errors():
             centroid = grid_calibration._robust_centroid(medians)
-        except VisionRuntimeUnavailable as exc:
-            raise DesktopCalibrationError(str(exc)) from exc
         centroids[color] = [float(component) for component in centroid]
         crop_digest.update(color.encode("ascii"))
         crop_digest.update(b"\0")
         crop_digest.update(len(payload).to_bytes(8, "big"))
         crop_digest.update(payload)
 
-    try:
+    with _vision_runtime_errors_as_calibration_errors():
         collision = grid_calibration.find_collision(centroids, COLOR_ORDER)
-    except VisionRuntimeUnavailable as exc:
-        raise DesktopCalibrationError(str(exc)) from exc
     if collision is not None:
         first, second = collision
         raise DesktopCalibrationError(

@@ -306,11 +306,12 @@ def build_camera_tracker_readiness(settings: Any) -> CameraTrackerReadiness:
         )
 
     runtime = _runtime_capability(requested_providers)
-    reason = (
-        None
-        if models["ready"] and runtime["ready"]
-        else str(models["reason"] if not models["ready"] else runtime["reason"])
-    )
+    if not models["ready"]:
+        reason = str(models["reason"])
+    elif not runtime["ready"]:
+        reason = str(runtime["reason"])
+    else:
+        reason = None
     return CameraTrackerReadiness(
         enabled=reason is None,
         status="available" if reason is None else "misconfigured",

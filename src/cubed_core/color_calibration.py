@@ -280,6 +280,14 @@ def _validate_provenance(value: Any) -> None:
 
 
 def validate_color_calibration(value: Any) -> None:
+    """Validate a cubed-core/color-calibration-v1 document.
+
+    This is the fuller, live-camera-capture contract: fixed geometry and
+    thresholds plus measured per-color samples that the reported centroids
+    must be derivable from (see ``validate_color_centroids`` for the bare,
+    additive imported-centroids contract).
+    """
+
     calibration = _require_object(
         value,
         field="color calibration",
