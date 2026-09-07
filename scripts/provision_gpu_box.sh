@@ -63,7 +63,7 @@ on_error() {
 trap on_error ERR
 
 usage() {
-  sed -n '3,38p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,37p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 

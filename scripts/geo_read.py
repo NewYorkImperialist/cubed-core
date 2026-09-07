@@ -63,6 +63,8 @@ def qarea(q):
 def slot_names(faces):
     """Name visible faces by their relative image position."""
 
+    if not faces:
+        return []
     items = [
         (
             np.asarray(face["corners"], float)[:, 1].mean(),

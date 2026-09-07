@@ -30,7 +30,6 @@ BENCHMARK_TEACHER_MANIFEST_SCHEMA = "public-dataset-teacher-manifest-v1.schema.j
 METADATA_ROW_SCHEMA = "public-dataset-metadata-row-v1.schema.json"
 READINESS_SCHEMA = "public-dataset-readiness-v1.schema.json"
 
-BUILD_PLAN_KIND = "cubed-core/public-dataset-build-plan"
 CORPUS_MANIFEST_KIND = "cubed-core/public-corpus-manifest"
 READINESS_KIND = "cubed-core/public-dataset-readiness-report"
 EVIDENCE_SCOPE = "corpus-not-benchmark-or-generalization-evidence"
@@ -1640,9 +1639,7 @@ def _validate_plan_runtime(
                 f"capture {capture_id}: missing required roles {sorted(missing_roles)}"
             )
         manifest_artifacts.sort(key=lambda item: (item["role"], item["path"]))
-        rights_artifact = next(
-            item for item in manifest_artifacts if item["role"] == "rights_record"
-        )
+        rights_artifact = _artifact_roles(manifest_artifacts)["rights_record"]
         _validate_capture_cross_bindings(
             capture_id,
             manifest_artifacts,
@@ -2170,7 +2167,7 @@ def validate_public_dataset(
             raise PublicDatasetError(
                 f"capture {capture_id}: missing required roles {sorted(missing_roles)}"
             )
-        rights_artifact = next(item for item in artifacts if item["role"] == "rights_record")
+        rights_artifact = _artifact_roles(artifacts)["rights_record"]
         _validate_capture_cross_bindings(
             capture_id,
             artifacts,

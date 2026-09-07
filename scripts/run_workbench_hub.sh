@@ -59,9 +59,9 @@ env_keys="$(grep -Eo '^[A-Za-z_][A-Za-z0-9_]*=' "$ENV_FILE" 2>/dev/null | sed 's
 prior_keys=()
 prior_vals=()
 for key in $env_keys; do
-	if eval "[ -n \"\${${key}+x}\" ]"; then
+	if [ -n "${!key+x}" ]; then
 		prior_keys+=("$key")
-		eval "prior_vals+=(\"\${${key}}\")"
+		prior_vals+=("${!key}")
 	fi
 done
 
@@ -72,7 +72,7 @@ set +a
 
 i=0
 for key in ${prior_keys[@]+"${prior_keys[@]}"}; do
-	eval "export ${key}=\"\${prior_vals[$i]}\""
+	export "${key}=${prior_vals[$i]}"
 	i=$((i + 1))
 done
 

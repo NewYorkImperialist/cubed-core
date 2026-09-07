@@ -71,8 +71,17 @@ SSH_OPTS=(
   -o ServerAliveInterval=15
   -o ServerAliveCountMax=4
 )
-# scp builds its own inline option set below (it does not read SSH_OPTS), so
-# the same liveness options are repeated there for the same reason.
+# scp uses -P (capital) for port instead of ssh's -p, so it needs its own
+# option array; SCP_OPTS still shares the same liveness options instead of
+# repeating them inline at each call site.
+SCP_OPTS=(
+  -P "$PORT"
+  -o BatchMode=yes
+  -o ConnectTimeout=10
+  -o ServerAliveInterval=15
+  -o ServerAliveCountMax=4
+  -q
+)
 
 JOB_ID=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["job_id"])' "$REQUEST")
 CAPTURE_ID=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["capture_id"])' "$REQUEST")
@@ -130,9 +139,9 @@ PY
 while IFS=$'\t' read -r local remote; do
   [ -n "$local" ] || continue
   echo "remote-decode: uploading $(basename "$local")"
-  scp -P "$PORT" -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -q "$local" "$DEST:$remote"
+  scp "${SCP_OPTS[@]}" "$local" "$DEST:$remote"
 done <<<"$PLAN"
-scp -P "$PORT" -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -q "$REQUEST.remote" "$DEST:$REMOTE_JOB/job-request.json"
+scp "${SCP_OPTS[@]}" "$REQUEST.remote" "$DEST:$REMOTE_JOB/job-request.json"
 
 # The remote native runner (src/cubed_core/native_decode_runner.py) prints its
 # own flushed [cubed-core:stage] markers (reads, events, alignfeat, decode) on
@@ -149,7 +158,7 @@ ssh "${SSH_OPTS[@]}" "$DEST" "cd '$REMOTE_ROOT' && \
 
 echo "[cubed-core:stage] download"
 echo "remote-decode: downloading the decode result"
-scp -P "$PORT" -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -q "$DEST:$REMOTE_JOB/decode-result.json" "$OUTPUT"
+scp "${SCP_OPTS[@]}" "$DEST:$REMOTE_JOB/decode-result.json" "$OUTPUT"
 if [ ! -s "$OUTPUT" ]; then
   echo "remote-decode: downloaded decode result is missing or empty" >&2
   exit 1
