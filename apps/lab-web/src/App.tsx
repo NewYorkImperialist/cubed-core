@@ -35,7 +35,7 @@ import { apiStateFromProbe } from "./apiSession";
 import type { ApiState } from "./apiSession";
 import type { Capabilities } from "./types";
 
-const SOURCE_REPOSITORY_URL = "https://github.com/KingBobJoeIV/cubed-core";
+const SOURCE_REPOSITORY_URL = "https://github.com/NewYorkImperialist/cubed-core";
 
 function StickerMark() {
   return (

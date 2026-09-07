@@ -37,7 +37,7 @@ On macOS, Linux, or WSL2, install Python 3.10 through 3.12, Node 22.3 or
 newer on the Node 22 line, FFmpeg, Git, Make, and the pinned `uv` version:
 
 ```bash
-git clone https://github.com/KingBobJoeIV/cubed-core.git
+git clone https://github.com/NewYorkImperialist/cubed-core.git
 cd cubed-core
 ./setup.sh --install-uv
 make workbench
@@ -59,7 +59,7 @@ Python 3.12, Node 22.3 or newer on the Node 22 line, FFmpeg, Git, and
 `uv 0.11.16` on `PATH`, run from PowerShell:
 
 ```powershell
-git clone https://github.com/KingBobJoeIV/cubed-core.git
+git clone https://github.com/NewYorkImperialist/cubed-core.git
 cd cubed-core
 uv sync --locked --python 3.12 --extra dev --extra label --extra decode
 npm --prefix apps/lab-web ci
@@ -77,7 +77,7 @@ same-machine use.
 For Docker:
 
 ```bash
-git clone https://github.com/KingBobJoeIV/cubed-core.git
+git clone https://github.com/NewYorkImperialist/cubed-core.git
 cd cubed-core
 make docker-cpu
 ```

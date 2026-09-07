@@ -1,5 +1,5 @@
 export const ROUTE_GUIDE_REPOSITORY_URL =
-  "https://github.com/KingBobJoeIV/cubed-core";
+  "https://github.com/NewYorkImperialist/cubed-core";
 export const ROUTE_GUIDE_LINK_TARGET = "_blank";
 export const ROUTE_GUIDE_LINK_REL = "noopener noreferrer";
 
