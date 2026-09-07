@@ -5,6 +5,7 @@ import {
   createCaptureMediaTicket,
   fetchCapabilities,
   fetchCaptures,
+  isAbortError,
 } from "../api";
 import {
   CAPTURE_PARAM,
@@ -97,7 +98,7 @@ export function ReconstructWorkbench() {
       });
       setCaptureLoadState("success");
     } catch (reason) {
-      if (reason instanceof Error && reason.name === "AbortError") return;
+      if (isAbortError(reason)) return;
       setCaptureError(
         reason instanceof Error
           ? reason.message
@@ -112,7 +113,7 @@ export function ReconstructWorkbench() {
     try {
       setCapabilities(await fetchCapabilities());
     } catch (reason) {
-      if (reason instanceof Error && reason.name === "AbortError") return;
+      if (isAbortError(reason)) return;
       setCapabilities(null);
       setCapabilitiesError(
         reason instanceof Error

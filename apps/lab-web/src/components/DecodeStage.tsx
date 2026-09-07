@@ -5,7 +5,9 @@ import {
   RequestError,
   fetchCapabilities,
   fetchCaptures,
+  isAbortError,
 } from "../api";
+import { triggerBlobDownload } from "../browserDownload";
 import {
   DecodePreflight,
   fetchDecodeJobResult,
@@ -40,10 +42,6 @@ import "../labTools.css";
 import "./DecodeStage.css";
 
 const JOB_POLL_INTERVAL_MS = 750;
-
-function isAbortError(reason: unknown): boolean {
-  return reason instanceof Error && reason.name === "AbortError";
-}
 
 function waitForJobPoll(signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -91,15 +89,6 @@ function isRemoteHostRejection(reason: unknown): boolean {
     reason.status === 400 &&
     /remote host/i.test(reason.message)
   );
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /**

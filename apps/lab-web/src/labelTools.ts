@@ -6,6 +6,7 @@ import type {
   FrameAnnotationsDocument,
   Point,
 } from "./localContracts";
+import { bytesToHex } from "./hex.ts";
 
 export type FrameDraft = Omit<AnnotationFrame, "frame_index" | "time_seconds">;
 export type FrameDrafts = Record<string, FrameDraft>;
@@ -325,7 +326,7 @@ export function newAnnotationId(): string {
   // RFC 4122 version 4 layout, so ids stay indistinguishable from the native ones.
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const hex = bytesToHex(bytes);
   return [
     hex.slice(0, 8),
     hex.slice(8, 12),

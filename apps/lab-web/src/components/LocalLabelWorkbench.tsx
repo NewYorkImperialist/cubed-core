@@ -21,6 +21,7 @@ import {
   saveCaptureAnnotations,
   scanCaptureLabelAlignment,
 } from "../api";
+import { safeDownloadStem, triggerBlobDownload } from "../browserDownload";
 import {
   EMPTY_LABEL_FRAME,
   FrameDraft,
@@ -93,22 +94,8 @@ function annotationCount(frames: FrameDrafts): number {
   );
 }
 
-function safeDownloadStem(filename: string): string {
-  const stem = filename.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9._-]+/g, "_");
-  return stem.slice(0, 100) || "capture";
-}
-
-function triggerDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
 function triggerJsonDownload(value: unknown, filename: string) {
-  triggerDownload(
+  triggerBlobDownload(
     new Blob([`${JSON.stringify(value, null, 2)}\n`], {
       type: "application/json",
     }),
@@ -1376,7 +1363,7 @@ export function LocalLabelWorkbench() {
     }
     triggerJsonDownload(
       document,
-      `${safeDownloadStem(source.filename)}.frame-annotations.json`,
+      `${safeDownloadStem(source.filename, "capture")}.frame-annotations.json`,
     );
     setMessage(`Downloaded ${document.frames.length} labeled frame(s).`);
   };
@@ -1392,9 +1379,9 @@ export function LocalLabelWorkbench() {
     try {
       if (!(await persistAnnotations(false))) return;
       const archive = await downloadLabelDatasetExport(source.capture_id);
-      triggerDownload(
+      triggerBlobDownload(
         archive,
-        `${safeDownloadStem(source.filename)}.label-dataset.zip`,
+        `${safeDownloadStem(source.filename, "capture")}.label-dataset.zip`,
       );
       setMessage(
         "Downloaded exact images with YOLO pose labels, COCO polygons, and alignment folders. The ZIP uses a convenient within-capture split. Create a separate held-out split for research evaluation.",

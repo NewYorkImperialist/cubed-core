@@ -12,6 +12,8 @@ import {
 } from "react";
 
 import { createCaptureMediaTicket } from "../api";
+import { safeDownloadStem, triggerBlobDownload } from "../browserDownload";
+import { bytesToHex } from "../hex";
 import {
   canonicalDecodeSequence,
   decodeResultVideoSha256,
@@ -39,22 +41,6 @@ import "../labTools.css";
 import { CubeState } from "./CubeState";
 import { TrellisBeam } from "./TrellisBeam";
 import "./DecodeDiagnostics.css";
-
-function safeDownloadStem(filename: string): string {
-  const stem = filename
-    .replace(/\.[^.]+$/, "")
-    .replace(/[^A-Za-z0-9._-]+/g, "_");
-  return stem.slice(0, 100) || "run";
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
 
 function frameEntries(dump: TrackerDump): [number, TrackerFrame][] {
   return Object.entries(dump.frames)
@@ -723,9 +709,7 @@ function BleReference({
 
 async function sha256File(file: File): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return Array.from(new Uint8Array(digest), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
+  return bytesToHex(new Uint8Array(digest));
 }
 
 export function DecodeRunInspector({
@@ -1161,7 +1145,7 @@ export function DecodeRunInspector({
         artifact,
         downloadName.endsWith(".json")
           ? downloadName
-          : `${safeDownloadStem(downloadName)}.json`,
+          : `${safeDownloadStem(downloadName, "run")}.json`,
       );
       setMessage("Downloaded the exact run JSON.");
     } catch (reason) {

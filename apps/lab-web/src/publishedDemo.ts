@@ -1,6 +1,7 @@
 // Explicit extension: the Node test runner strips types and resolves this
 // specifier literally when a test imports this module directly.
 import { simplifyMovesWithFrames } from "./moveFold.ts";
+import { bytesToHex } from "./hex.ts";
 import type { DecodeResultDocument } from "./types";
 
 export interface PublishedDemoManifest {
@@ -417,9 +418,7 @@ export async function sha256Hex(text: string): Promise<string> {
   }
   const bytes = new TextEncoder().encode(text);
   const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
+  return bytesToHex(new Uint8Array(digest));
 }
 
 export async function loadPublishedDemo(

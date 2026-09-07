@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { fetchCaptures } from "../api";
+import { fetchCaptures, isAbortError } from "../api";
+import { triggerBlobDownload } from "../browserDownload";
 import {
   deleteDecodeRun,
   fetchDecodeJobResult,
@@ -87,15 +88,6 @@ function runOutcome(job: DecodeJobStatus): string {
     case "succeeded":
       return job.result_available ? "Result ready" : "Finished without a result";
   }
-}
-
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function attemptMatches(attempt: WorkspaceAttempt, query: string): boolean {
@@ -266,7 +258,7 @@ export function RunsWorkbench() {
     void fetchDecodeJobResult(selectedAttempt.job.job_id, controller.signal)
       .then(setSelectedResult)
       .catch((reason) => {
-        if (reason instanceof Error && reason.name === "AbortError") return;
+        if (isAbortError(reason)) return;
         setResultError(
           reason instanceof Error
             ? reason.message

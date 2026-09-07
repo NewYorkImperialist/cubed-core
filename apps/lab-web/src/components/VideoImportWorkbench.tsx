@@ -601,11 +601,11 @@ export function VideoImportWorkbench() {
                           className="button button-quiet"
                           type="button"
                           disabled={removingCaptureId !== ""}
-                            onClick={() => void removeCapture(capture)}
-                          >
-                            {removingCaptureId === capture.capture_id
-                              ? "Moving…"
-                              : "Move to Trash"}
+                          onClick={() => void removeCapture(capture)}
+                        >
+                          {removingCaptureId === capture.capture_id
+                            ? "Moving…"
+                            : "Move to Trash"}
                         </button>
                       </li>
                     ))}

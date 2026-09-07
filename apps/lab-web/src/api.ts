@@ -114,6 +114,11 @@ async function ensureAdminToken(): Promise<void> {
   }
 }
 
+/** True when `reason` is a fetch/AbortController cancellation, not a real failure. */
+export function isAbortError(reason: unknown): boolean {
+  return reason instanceof Error && reason.name === "AbortError";
+}
+
 export class RequestError extends Error {
   constructor(
     message: string,
