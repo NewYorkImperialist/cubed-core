@@ -55,6 +55,11 @@ class LocalInference:
             self.face_model = None
             log.warning("Face pose model not found: %s", face_path)
 
+        # Legacy dedicated side-segmentation model, populated below only when
+        # reachable. Declared here so the attribute always exists even if
+        # initialization returns early with no sticker model at all found.
+        self.side_model = None
+
         # Sticker segmentation is not consumed by the default production pose
         # reader.  Keep only its path here and create the ONNX session on the
         # first calibration/legacy-segmentation call; eagerly reserving its GPU
@@ -78,9 +83,9 @@ class LocalInference:
             else:
                 self._sticker_nc = 1
                 log.warning("No sticker model found")
-            # Preserve the historical fallback constructor shape: when the
-            # preferred one-class model is absent, initialization ended here.
-            return
+                # Preserve the historical fallback constructor shape: when no
+                # sticker model at all is found, initialization ended here.
+                return
 
         # Legacy side model (only if face pose model not available)
         if self.face_model is None:
